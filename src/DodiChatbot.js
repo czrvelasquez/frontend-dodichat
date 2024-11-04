@@ -247,95 +247,89 @@ const DodiChatbot = () => {
                 addMessage("Dodi", "El número de WhatsApp debe tener 10 dígitos. Por favor, ingresa un número válido.");
             }
         }  else if (step === 11) {
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-            if (emailRegex.test(inputToSend)) {
-                // Actualizamos `responses` de forma controlada
-                setResponses((prevResponses) => {
-                    const updatedResponses = {
-                        ...prevResponses,
-                        correo: inputToSend  // Usamos el nombre 'correo' en minúsculas para que coincida con el backend
-                    };
-        
-                    if (requirePaymentProof) {
-                        addMessage("Dodi", "Gracias. Ahora, por favor sube tu comprobante de pago en formato PNG, JPG o PDF.");
-                        setMessages((prevMessages) => [
-                            ...prevMessages,
-                            {
-                                sender: "Dodi",
-                                message: (
-                                    <div className="file-upload">
-                                        <input
-                                            type="file"
-                                            accept=".png,.jpg,.jpeg,.pdf"
-                                            onChange={async (e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    addMessage("Usuario", `Comprobante de pago subido: ${file.name}`);
-                    
-                                                    // Crear y llenar el FormData
-                                                    const formData = new FormData();
-                                                    formData.append('comprobante', file);  // Agregar el archivo al FormData
-                                                    formData.append('nivelGrado', responses['Nivel y grado educativo']);
-                                                    formData.append('situacionProblema', responses['Situación problema']);
-                                                    formData.append('estrategiaDidactica', responses['Estrategia didáctica']);
-                                                    formData.append('camposFormativos', responses['Campos formativos']);
-                                                    formData.append('PDA', responses['PDA']);
-                                                    formData.append('ejesArticuladores', responses['Ejes articuladores']);
-                                                    formData.append('rasgosPerfilEgreso', responses['Rasgos del perfil de egreso']);
-                                                    formData.append('duracionSemanas', Number(responses['Duración en semanas']));
-                                                    formData.append('actividadesDiarias', Number(responses['Cantidad de actividades diarias']));
-                                                    formData.append('whatsapp', responses['WhatsApp']);
-                                                    formData.append('correo', responses['correo']);
-                    
-                                                    // Verifica si los datos se están agregando correctamente
-                                                    console.log('FormData a enviar:', {
-                                                        nivelGrado: responses['Nivel y grado educativo'],
-                                                        situacionProblema: responses['Situación problema'],
-                                                        estrategiaDidactica: responses['Estrategia didáctica'],
-                                                        camposFormativos: responses['Campos formativos'],
-                                                        PDA: responses['PDA'],
-                                                        ejesArticuladores: responses['Ejes articuladores'],
-                                                        rasgosPerfilEgreso: responses['Rasgos del perfil de egreso'],
-                                                        duracionSemanas: responses['Duración en semanas'],
-                                                        actividadesDiarias: responses['Cantidad de actividades diarias'],
-                                                        whatsapp: responses['WhatsApp'],
-                                                        correo: responses['correo'],
-                                                        comprobante: file
-                                                    });
-                    
-                                                    // Enviar el FormData al servidor
-                                                    try {
-                                                        const response = await fetch('https://chi-1.onrender.com/api/save', {
-                                                            method: 'POST',
-                                                            body: formData,
-                                                        });
-                    
-                                                        if (!response.ok) throw new Error('Error al enviar los datos');
-                    
-                                                        const data = await response.json();
-                                                        console.log('Respuesta del servidor:', data);
-                                                    } catch (error) {
-                                                        console.error('Error al subir datos al servidor:', error);
-                                                    }
-                    
-                                                    setStep(13);
-                                                    addMessage("Dodi", "¡Gracias! Hemos recibido tu comprobante de pago. Te enviaremos la planeación en las próximas 2 horas.");
-                                                }
-                                            }}
-                                        />
-                                        <p className="file-upload-instructions">Formatos permitidos: PNG, JPG, PDF.</p>
-                                    </div>
-                                )
-                            }
-                        ]);
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (emailRegex.test(inputToSend)) {
+        setResponses((prevResponses) => {
+            const updatedResponses = {
+                ...prevResponses,
+                correo: inputToSend // Usamos el nombre 'correo' en minúsculas para que coincida con el backend
+            };
+
+            // Esta función enviará los datos al servidor con o sin comprobante
+            const enviarDatosAlServidor = async (file = null) => {
+                const formData = new FormData();
+                
+                if (file) {
+                    formData.append('comprobante', file); // Agregar el archivo si está presente
+                }
+                formData.append('nivelGrado', updatedResponses['Nivel y grado educativo']);
+                formData.append('situacionProblema', updatedResponses['Situación problema']);
+                formData.append('estrategiaDidactica', updatedResponses['Estrategia didáctica']);
+                formData.append('camposFormativos', updatedResponses['Campos formativos']);
+                formData.append('PDA', updatedResponses['PDA']);
+                formData.append('ejesArticuladores', updatedResponses['Ejes articuladores']);
+                formData.append('rasgosPerfilEgreso', updatedResponses['Rasgos del perfil de egreso']);
+                formData.append('duracionSemanas', Number(updatedResponses['Duración en semanas']));
+                formData.append('actividadesDiarias', Number(updatedResponses['Cantidad de actividades diarias']));
+                formData.append('whatsapp', updatedResponses['WhatsApp']);
+                formData.append('correo', updatedResponses['correo']);
+                
+                try {
+                    const response = await fetch('https://chi-1.onrender.com/api/save', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) throw new Error('Error al enviar los datos');
+
+                    const data = await response.json();
+                    console.log('Respuesta del servidor:', data);
+                } catch (error) {
+                    console.error('Error al subir datos al servidor:', error);
+                }
+            };
+
+            if (requirePaymentProof) {
+                addMessage("Dodi", "Gracias. Ahora, por favor sube tu comprobante de pago en formato PNG, JPG o PDF.");
+                setMessages((prevMessages) => [
+                    ...prevMessages,
+                    {
+                        sender: "Dodi",
+                        message: (
+                            <div className="file-upload">
+                                <input
+                                    type="file"
+                                    accept=".png,.jpg,.jpeg,.pdf"
+                                    onChange={async (e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            addMessage("Usuario", `Comprobante de pago subido: ${file.name}`);
+
+                                            // Enviar los datos junto con el comprobante
+                                            await enviarDatosAlServidor(file);
+                                            setStep(13);
+                                            addMessage("Dodi", "¡Gracias! Hemos recibido tu comprobante de pago. Te enviaremos la planeación en las próximas 2 horas.");
+                                        }
+                                    }}
+                                />
+                                <p className="file-upload-instructions">Formatos permitidos: PNG, JPG, PDF.</p>
+                            </div>
+                        )
                     }
-        
-                    return updatedResponses;  // Retornamos el nuevo estado de responses
-                });
+                ]);
             } else {
-                addMessage("Dodi", "El correo electrónico ingresado no es válido. Por favor, ingresa un correo electrónico válido.");
+                // Si no se requiere comprobante, enviar los datos directamente
+                enviarDatosAlServidor(null);
+                setStep(13);
+                addMessage("Dodi", "¡Gracias! Hemos recibido tu solicitud. Te enviaremos la planeación en las próximas 2 horas.");
             }
-        }
+
+            return updatedResponses; // Retornamos el nuevo estado de responses
+        });
+    } else {
+        addMessage("Dodi", "El correo electrónico ingresado no es válido. Por favor, ingresa un correo electrónico válido.");
+    }
+}
         
         
         
