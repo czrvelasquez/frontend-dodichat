@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './DodiChatbot.scss';
-import { loadStripe } from '@stripe/stripe-js';
 
-// Inicializa Stripe con tu clave pública
-const stripePromise = loadStripe('TU_CLAVE_PUBLICA_STRIPE');
 
 const DodiChatbot = () => {
     const [step, setStep] = useState(0);
@@ -15,7 +12,7 @@ const DodiChatbot = () => {
     const [selectedCampos, setSelectedCampos] = useState([]);
     const [selectedImage, setSelectedImage] = useState(null);
     const [isModalActive, setIsModalActive] = useState(false);
-
+    const [requirePaymentProof, setRequirePaymentProof] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedPaymentOption, setSelectedPaymentOption] = useState(null);
     const [showPaymentDetails, setShowPaymentDetails] = useState(false);
@@ -46,6 +43,37 @@ const DodiChatbot = () => {
         setSelectedPaymentOption(null);
         setShowPaymentDetails(false);
         addMessage("Dodi", "¡Hola! ¿En qué puedo ayudarte hoy?");
+    };
+
+    const submitDataToServer = async (file, otherData) => {
+        const formData = new FormData();
+        formData.append('comprobante', file); // Agrega el archivo
+        formData.append('Nivel y grado educativo', otherData['Nivel y grado educativo']);
+        formData.append('Situación problema', otherData['Situación problema']);
+        formData.append('Estrategia didáctica', otherData['Estrategia didáctica']);
+        formData.append('Campos formativos', otherData['Campos formativos']);
+        formData.append('PDA', otherData['PDA']);
+        formData.append('Ejes articuladores', otherData['Ejes articuladores']);
+        formData.append('Perfil egreso', otherData['Perfil egreso']);
+        formData.append('Duración semanas', otherData['Duración semanas']);
+        formData.append('Actividades diarias', otherData['Actividades diarias']);
+        formData.append('Whatsapp', otherData['Whatsapp']);
+        formData.append('Correo', otherData['Correo']);
+        
+    
+        try {
+            const response = await fetch('http://localhost:3001/api/save', {
+                method: 'POST',
+                body: formData
+            });
+    
+            if (!response.ok) throw new Error('Error al enviar los datos');
+            
+            const data = await response.json();
+            console.log('Respuesta del servidor:', data);
+        } catch (error) {
+            console.error('Error al subir datos al servidor:', error);
+        }
     };
 
     useEffect(() => {
@@ -79,19 +107,6 @@ const DodiChatbot = () => {
         setShowPaymentDetails(true);
     };
 
-    const handleStripeCheckout = async (priceId) => {
-        const stripe = await stripePromise;
-        const { error } = await stripe.redirectToCheckout({
-            lineItems: [{ price: priceId, quantity: 1 }],
-            mode: 'payment',
-            successUrl: `${window.location.origin}/success`,
-            cancelUrl: `${window.location.origin}/cancel`,
-        });
-        if (error) {
-            console.error("Stripe checkout error:", error);
-        }
-    };
-
     const sendMessage = async (selectedOption = null) => {
         const inputToSend = selectedOption ? selectedOption : userInput.trim();
         if (!inputToSend) return;
@@ -117,6 +132,7 @@ const DodiChatbot = () => {
             const gradeRegex = /\b(\d|primero|segundo|tercero|cuarto|quinto|sexto)\b.*\b(primaria|secundaria|preescolar)\b/i;
             if (gradeRegex.test(inputToSend)) {
                 newResponses["Nivel y grado educativo"] = inputToSend;
+                setResponses(newResponses); 
                 addMessage("Dodi", "Describe brevemente la situación problema que quieres abordar en el proyecto.");
                 setStep(2);
             } else {
@@ -124,10 +140,12 @@ const DodiChatbot = () => {
             }
         } else if (step === 2) {
             newResponses["Situación problema"] = inputToSend.substring(0, 200);
+            setResponses(newResponses); 
             addMessage("Dodi", "Selecciona la estrategia didáctica que utilizarás:");
             setStep(3);
         } else if (step === 3) {
             newResponses["Estrategia didáctica"] = inputToSend;
+            setResponses(newResponses); 
             addMessage("Dodi", (
                 <>
                     Selecciona los campos formativos involucrados:
@@ -137,6 +155,7 @@ const DodiChatbot = () => {
             setStep(4);
         } else if (step === 4) {
             newResponses["Campos formativos"] = selectedCampos.join(', ');
+            setResponses(newResponses); 
             addMessage("Dodi", (
                 <>
                     Selecciona el PDA según las fases del programa sintético de la SEP.
@@ -149,7 +168,7 @@ const DodiChatbot = () => {
                         style={{ cursor: 'pointer' }}
                     />
                     <br />
-                    <a href="https://drive.google.com/file/d/1mSVUGLVUguxUHtNtRPZTJhN1XIesecQD/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+                    <a href="https://drive.google.com/file/d/1VRiOZQi2VvJrZv86dcVorXDEL73wcOzr/view" target="_blank" rel="noopener noreferrer">
                         Haz clic aquí para abrir el PDF y copiar el PDA.
                     </a>
                 </>
@@ -157,6 +176,7 @@ const DodiChatbot = () => {
             setStep(5);
         } else if (step === 5) {
             newResponses["PDA"] = inputToSend.substring(0, 500);
+            setResponses(newResponses); 
             addMessage("Dodi", (
                 <>
                     Selecciona los ejes articuladores.
@@ -173,6 +193,7 @@ const DodiChatbot = () => {
             setStep(6);
         } else if (step === 6) {
             newResponses["Ejes articuladores"] = inputToSend;
+            setResponses(newResponses); 
             addMessage("Dodi", (
                 <>
                     Selecciona los rasgos del perfil de egreso.
@@ -189,47 +210,135 @@ const DodiChatbot = () => {
             setStep(7);
         } else if (step === 7) {
             newResponses["Rasgos del perfil de egreso"] = inputToSend;
+            setResponses(newResponses); 
             addMessage("Dodi", "¿Cuál es la duración del proyecto en semanas (de 2 a 6 semanas)?");
             setStep(8);
         } else if (step === 8) {
-            const weeks = parseInt(inputToSend);
-            if (weeks >= 2 && weeks <= 6) {
-                newResponses["Duración en semanas"] = weeks;
+            const weeks = parseInt(inputToSend, 10);
+            if (!isNaN(weeks) && weeks >= 2 && weeks <= 6) {
+                newResponses["Duración en semanas"] = weeks.toString();  // Convertir a string para enviar correctamente
+                setResponses(newResponses); 
                 addMessage("Dodi", "¿Cuántas actividades diarias se realizarán (número de 1 a 5)?");
                 setStep(9);
             } else {
                 addMessage("Dodi", "Por favor ingresa un número de semanas válido entre 2 y 6.");
             }
-        } else if (step === 9) {
-            const activities = parseInt(inputToSend);
-            if (activities >= 1 && activities <= 5) {
-                newResponses["Cantidad de actividades diarias"] = activities;
+        }
+        
+        else if (step === 9) {
+            const activities = parseInt(inputToSend, 10);
+            if (!isNaN(activities) && activities >= 1 && activities <= 5) {
+                newResponses["Cantidad de actividades diarias"] = activities.toString();  // Convertir a string para enviar correctamente
+                setResponses(newResponses); 
                 addMessage("Dodi", "Por favor, ingresa tu número de WhatsApp para enviarte la planeación.");
                 setStep(10);
             } else {
                 addMessage("Dodi", "Por favor ingresa un número de actividades válido entre 1 y 5.");
             }
-        } else if (step === 10) {
+        }
+        else if (step === 10) {
             const whatsappRegex = /^\d{10}$/;
             if (whatsappRegex.test(inputToSend)) {
                 newResponses["WhatsApp"] = inputToSend;
+                setResponses(newResponses); 
                 addMessage("Dodi", "Gracias. Ahora, por favor ingresa tu correo electrónico.");
                 setStep(11);
             } else {
                 addMessage("Dodi", "El número de WhatsApp debe tener 10 dígitos. Por favor, ingresa un número válido.");
             }
-        }  if (step === 11) {
+        }  else if (step === 11) {
             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
             if (emailRegex.test(inputToSend)) {
-                newResponses["Correo"] = inputToSend;
-                addMessage("Dodi", "¡Gracias! Hemos recibido toda la información. Te enviaremos la planeación en las próximas 2 horas.");
-                updateFreePlanCount();
-                setStep(12);
+                // Actualizamos `responses` de forma controlada
+                setResponses((prevResponses) => {
+                    const updatedResponses = {
+                        ...prevResponses,
+                        correo: inputToSend  // Usamos el nombre 'correo' en minúsculas para que coincida con el backend
+                    };
+        
+                    if (requirePaymentProof) {
+                        addMessage("Dodi", "Gracias. Ahora, por favor sube tu comprobante de pago en formato PNG, JPG o PDF.");
+                        setMessages((prevMessages) => [
+                            ...prevMessages,
+                            {
+                                sender: "Dodi",
+                                message: (
+                                    <div className="file-upload">
+                                        <input
+                                            type="file"
+                                            accept=".png,.jpg,.jpeg,.pdf"
+                                            onChange={async (e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    addMessage("Usuario", `Comprobante de pago subido: ${file.name}`);
+                    
+                                                    // Crear y llenar el FormData
+                                                    const formData = new FormData();
+                                                    formData.append('comprobante', file);  // Agregar el archivo al FormData
+                                                    formData.append('nivelGrado', responses['Nivel y grado educativo']);
+                                                    formData.append('situacionProblema', responses['Situación problema']);
+                                                    formData.append('estrategiaDidactica', responses['Estrategia didáctica']);
+                                                    formData.append('camposFormativos', responses['Campos formativos']);
+                                                    formData.append('PDA', responses['PDA']);
+                                                    formData.append('ejesArticuladores', responses['Ejes articuladores']);
+                                                    formData.append('rasgosPerfilEgreso', responses['Rasgos del perfil de egreso']);
+                                                    formData.append('duracionSemanas', Number(responses['Duración en semanas']));
+                                                    formData.append('actividadesDiarias', Number(responses['Cantidad de actividades diarias']));
+                                                    formData.append('whatsapp', responses['WhatsApp']);
+                                                    formData.append('correo', responses['correo']);
+                    
+                                                    // Verifica si los datos se están agregando correctamente
+                                                    console.log('FormData a enviar:', {
+                                                        nivelGrado: responses['Nivel y grado educativo'],
+                                                        situacionProblema: responses['Situación problema'],
+                                                        estrategiaDidactica: responses['Estrategia didáctica'],
+                                                        camposFormativos: responses['Campos formativos'],
+                                                        PDA: responses['PDA'],
+                                                        ejesArticuladores: responses['Ejes articuladores'],
+                                                        rasgosPerfilEgreso: responses['Rasgos del perfil de egreso'],
+                                                        duracionSemanas: responses['Duración en semanas'],
+                                                        actividadesDiarias: responses['Cantidad de actividades diarias'],
+                                                        whatsapp: responses['WhatsApp'],
+                                                        correo: responses['correo'],
+                                                        comprobante: file
+                                                    });
+                    
+                                                    // Enviar el FormData al servidor
+                                                    try {
+                                                        const response = await fetch('http://localhost:3001/api/save', {
+                                                            method: 'POST',
+                                                            body: formData,
+                                                        });
+                    
+                                                        if (!response.ok) throw new Error('Error al enviar los datos');
+                    
+                                                        const data = await response.json();
+                                                        console.log('Respuesta del servidor:', data);
+                                                    } catch (error) {
+                                                        console.error('Error al subir datos al servidor:', error);
+                                                    }
+                    
+                                                    setStep(13);
+                                                    addMessage("Dodi", "¡Gracias! Hemos recibido tu comprobante de pago. Te enviaremos la planeación en las próximas 2 horas.");
+                                                }
+                                            }}
+                                        />
+                                        <p className="file-upload-instructions">Formatos permitidos: PNG, JPG, PDF.</p>
+                                    </div>
+                                )
+                            }
+                        ]);
+                    }
+        
+                    return updatedResponses;  // Retornamos el nuevo estado de responses
+                });
             } else {
                 addMessage("Dodi", "El correo electrónico ingresado no es válido. Por favor, ingresa un correo electrónico válido.");
             }
         }
-
+        
+        
+        
         setResponses(newResponses);
         setUserInput('');
     };
@@ -287,61 +396,27 @@ const DodiChatbot = () => {
                     </>
                 )}
 
-                {/* Modal para opciones de pago */}
                 {showPaymentModal && (
                     <div className="modal active">
                         <div className="modal-content">
-                            <h3>Elige una opción de pago</h3>
-                            {!showPaymentDetails && (
-                                <div className="payment-options">
-                                    <button onClick={() => selectPaymentOption("membresia")}>
-                                        Membresía anual - $599 MXN
-                                    </button>
-                                    <button onClick={() => selectPaymentOption("planeacion_1")}>
-                                        Crear 1 planeación - $50 MXN
-                                    </button>
-                                    <button onClick={() => selectPaymentOption("planeacion_3")}>
-                                        Crear 3 planeaciones - $100 MXN
-                                    </button>
-                                </div>
-                            )}
-                            {showPaymentDetails && (
-                                <div className="payment-details">
-                                    {selectedPaymentOption === "membresia" && (
-    <>
-        <p><strong>Membresía anual:</strong> Disfruta de acceso ilimitado a la plataforma, con cursos y contenido exclusivo durante todo el año.</p>
-        <button onClick={() => handleStripeCheckout('TU_ID_PRECIO_MEMBRESIA')}>
-            Pagar en OXXO o por transferencia
-        </button>
-        <button onClick={() => window.open('https://paypal.com')}>
-            Pagar con PayPal
-        </button>
-    </>
-)}
-                                    {selectedPaymentOption === "planeacion_1" && (
-                                        <>
-                                            <p><strong>1 Planeación:</strong> Recibirás una planeación editable en formato digital para personalizar y descargar.</p>
-                                            <button onClick={() => handleStripeCheckout('TU_ID_PRECIO_PLANEACION_1')}>
-                                            Pagar en OXXO o por transferencia
-                                            </button>
-                                            <button onClick={() => window.open('https://paypal.com')}>
-                                                Pagar con PayPal
-                                            </button>
-                                        </>
-                                    )}
-                                    {selectedPaymentOption === "planeacion_3" && (
-                                        <>
-                                            <p><strong>3 Planeaciones:</strong> Recibirás tres planeaciones editables en formato digital para personalizar y descargar.</p>
-                                            <button onClick={() => handleStripeCheckout('TU_ID_PRECIO_PLANEACION_3')}>
-                                            Pagar en OXXO o por transferencia
-                                            </button>
-                                            <button onClick={() => window.open('https://paypal.com')}>
-                                                Pagar con PayPal
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            )}
+                            <h3>Información de Pago</h3>
+                            <div className="payment-info">
+                                <p>Realiza tu pago en OXXO al número de tarjeta: 1234 5678 9012 3456</p>
+                                <p>O directamente en el banco o transferencia al número de cuenta: 1234567890</p>
+                                <p>CLABE: 012345678901234567</p>
+                                <p>Precios:</p>
+                                <ul>
+                                    <li>1 Planeación: $50 MXN</li>
+                                    <li>3 Planeaciones: $100 MXN</li>
+                                </ul>
+                            </div>
+                            <button className="continue-button" onClick={() => {
+                                setShowPaymentModal(false);
+                                setShowButtons(false);
+                                setRequirePaymentProof(true);
+                                addMessage("Dodi", "Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').");
+                                setStep(1);
+                            }}>Continuar</button>
                             <button className="close-button" onClick={closePaymentModal}>Cerrar</button>
                         </div>
                     </div>
@@ -349,13 +424,15 @@ const DodiChatbot = () => {
 
                 {step === 3 && (
                     <div className="button-group">
-                        <button className="option-button" onClick={() => sendMessage("Proyecto Comunitario")}>Proyecto Comunitario</button>
-                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en la indagación")}>Indagación</button>
-                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en problemas")}>Problemas</button>
-                        <button className="option-button" onClick={() => sendMessage("Aprendizaje servicio")}>Servicio</button>
-                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en retos")}>Retos</button>
-                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en fenómenos")}>Fenómenos</button>
-                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en casos")}>Casos</button>
+                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en proyectos")}>Aprendizaje basado en Proyectos</button>
+                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en la indagación")}>Aprendizaje basado en Indagación (STEM)</button>
+                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en problemas")}>Aprendizaje basado en Problemas</button>
+                        <button className="option-button" onClick={() => sendMessage("Aprendizaje servicio")}>Aprendizaje basado en Servicio</button>
+                        <button className="option-button" onClick={() => sendMessage("Rincones de trabajo")}>Modalidad de Trabajo: Rincones de trabajo</button>
+                        <button className="option-button" onClick={() => sendMessage("Talleres críticos")}>Modalidad de Trabajo: Talleres críticos</button>
+                        <button className="option-button" onClick={() => sendMessage("Centros de interés")}>Modalidad de Trabajo: Centros de interés</button>
+                        <button className="option-button" onClick={() => sendMessage("Unidad didáctica")}>Modalidad de Trabajo: Unidad didáctica</button>
+                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en juegos")}>Aprendizaje basado en juegos</button>
                     </div>
                 )}
 
