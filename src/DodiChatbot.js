@@ -62,7 +62,7 @@ const DodiChatbot = () => {
         
     
     //     try {
-    //         const response = await fetch('http://localhost:3001/api/save', {
+    //         const response = await fetch('https://chi-2.onrender.com/api/save', {
     //             method: 'POST',
     //             body: formData
     //         });
@@ -279,7 +279,7 @@ const DodiChatbot = () => {
                         }
                         
                         try {
-                            const response = await fetch('http://localhost:3001/api/save', {
+                            const response = await fetch('https://chi-2.onrender.com/save', {
                                 method: 'POST',
                                 body: formData,
                             });
