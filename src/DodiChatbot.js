@@ -297,7 +297,7 @@ const DodiChatbot = () => {
                     
         
                     if (requirePaymentProof) {
-                        addMessage("Dodi", "Gracias. Ahora, por favor sube tu comprobante de pago en formato PNG, JPG o PDF.");
+                        addMessage("Dodi", "Gracias. Ahora, por favor sube una foto de tu comprobante de pago en formato PNG, JPG . (solo archivos de Maximo 10 Mb)");
                         setMessages((prevMessages) => [
                             ...prevMessages,
                             {
@@ -402,14 +402,16 @@ const DodiChatbot = () => {
                         <div className="modal-content">
                             <h3>Información de Pago</h3>
                             <div className="payment-info">
-                                <p>Realiza tu pago en OXXO al número de tarjeta: 1234 5678 9012 3456</p>
-                                <p>O directamente en el banco o transferencia al número de cuenta: 1234567890</p>
-                                <p>CLABE: 012345678901234567</p>
+                                <p>Realiza tu pago en OXXO al número de tarjeta: 4217 4700 2877 4202</p>
+                                <p>O transferencia al número de CLABE:</p>
+                                <p>646010146401739026</p>
+                                <p>Banco STP a nombre de Cesar Alberto Velásquez Ríos</p>
                                 <p>Precios:</p>
                                 <ul>
-                                    <li>1 Planeación: $50 MXN</li>
-                                    <li>3 Planeaciones: $100 MXN</li>
+                                    <li>1 Planeación: $25 MXN</li>
+                                    <li>3 Planeaciones: $50 MXN</li>
                                 </ul>
+                                <p> (Al finalizar te pediremos una foto del comprobante de pago, favor de tenerlo a la mano)</p>
                             </div>
                             <button className="continue-button" onClick={() => {
                                 setShowPaymentModal(false);
@@ -417,7 +419,7 @@ const DodiChatbot = () => {
                                 setRequirePaymentProof(true);
                                 addMessage("Dodi", "Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').");
                                 setStep(1);
-                            }}>Continuar</button>
+                            }}>Continuar al chat</button>
                             <button className="close-button" onClick={closePaymentModal}>Cerrar</button>
                         </div>
                     </div>
