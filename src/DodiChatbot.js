@@ -411,7 +411,7 @@ const DodiChatbot = () => {
                                     <li>1 Planeación: $25 MXN</li>
                                     <li>3 Planeaciones: $50 MXN</li>
                                 </ul>
-                                <p> (Al finalizar te pediremos una foto del comprobante de pago, favor de tenerlo a la mano)
+                                <p> (Al finalizar te pediremos una foto del comprobante de pago, favor de tenerlo a la mano)</p>
                             </div>
                             <button className="continue-button" onClick={() => {
                                 setShowPaymentModal(false);
