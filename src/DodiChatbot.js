@@ -121,6 +121,7 @@ const DodiChatbot = () => {
                     setShowButtons(true);
                     return;
                 }
+                updateFreePlanCount();
                 setShowButtons(false);
                 addMessage("Dodi", "Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').");
                 setStep(1);
