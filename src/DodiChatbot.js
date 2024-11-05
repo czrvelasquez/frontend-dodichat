@@ -121,6 +121,7 @@ const DodiChatbot = () => {
                     setShowButtons(true);
                     return;
                 }
+                updateFreePlanCount();
                 setShowButtons(false);
                 addMessage("Dodi", "Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').");
                 setStep(1);
@@ -277,7 +278,7 @@ const DodiChatbot = () => {
                         for (let [key, value] of formData.entries()) { 
                             console.log(key, value);
                         }
-                        
+
                         try {
                             const response = await fetch('http://localhost:3001/api/save', {
                                 method: 'POST',
