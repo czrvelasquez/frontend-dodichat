@@ -297,7 +297,7 @@ const DodiChatbot = () => {
                     
         
                     if (requirePaymentProof) {
-                        addMessage("Dodi", "Gracias. Ahora, por favor sube tu comprobante de pago en formato PNG, JPG o PDF. (solo archivos de Maximo 10 Mb)");
+                        addMessage("Dodi", "Gracias. Ahora, por favor sube una foto de tu comprobante de pago en formato PNG, JPG . (solo archivos de Maximo 10 Mb)");
                         setMessages((prevMessages) => [
                             ...prevMessages,
                             {
