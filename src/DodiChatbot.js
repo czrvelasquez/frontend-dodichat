@@ -16,6 +16,14 @@ const DodiChatbot = () => {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedPaymentOption, setSelectedPaymentOption] = useState(null);
     const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+    // Estados para almacenar los textos generados
+    const [planeacionTexto, setPlaneacionTexto] = useState('');
+    const [herramientasEvaluacionTexto, setHerramientasEvaluacionTexto] = useState('');
+    const [isPDFReady, setIsPDFReady] = useState(false); 
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
+
+
+
 
     const chatBox = React.createRef();
 
@@ -45,36 +53,117 @@ const DodiChatbot = () => {
         addMessage("Dodi", "¡Hola! ¿En qué puedo ayudarte hoy?");
     };
 
-    // const submitDataToServer = async (file, otherData) => {
-    //     const formData = new FormData();
-    //     formData.append('comprobante', file); // Agrega el archivo
-    //     formData.append('Nivel y grado educativo', otherData['Nivel y grado educativo']);
-    //     formData.append('Situación problema', otherData['Situación problema']);
-    //     formData.append('Estrategia didáctica', otherData['Estrategia didáctica']);
-    //     formData.append('Campos formativos', otherData['Campos formativos']);
-    //     formData.append('PDA', otherData['PDA']);
-    //     formData.append('Ejes articuladores', otherData['Ejes articuladores']);
-    //     formData.append('Perfil egreso', otherData['Perfil egreso']);
-    //     formData.append('Duración semanas', otherData['Duración semanas']);
-    //     formData.append('Actividades diarias', otherData['Actividades diarias']);
-    //     formData.append('Whatsapp', otherData['Whatsapp']);
-    //     formData.append('Correo', otherData['Correo']);
-        
+    const descargarPDF = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/api/generate-pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    planeacion: planeacionTexto,
+                    herramientasEvaluacion: herramientasEvaluacionTexto,
+                }),
+            });
     
-    //     try {
-    //         const response = await fetch('http://localhost:3001/api/save', {
-    //             method: 'POST',
-    //             body: formData
-    //         });
+            if (!response.ok) {
+                throw new Error('Error al generar el PDF en el servidor.');
+            }
     
-    //         if (!response.ok) throw new Error('Error al enviar los datos');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'Planeacion_y_Evaluacion.pdf');
+    
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+    
+        } catch (error) {
+            console.error('Error al descargar el PDF:', error);
+            alert('Hubo un problema al generar el archivo PDF. Intente de nuevo.');
+        }
+    };
+    
+
+    const enviarDatosPlanAlServidor = async () => {
+        const prompt1 = `
+    Actúa como un docente experto en planeación y proyectos interdisciplinarios. Realiza un proyecto para el nivel y grado: ${responses['Nivel y grado educativo']}, que incluya la situación problema: ${responses['Situación problema']}, y use la estrategia didáctica seleccionada: ${responses['Estrategia didáctica']}. Además, considera los campos formativos: ${responses['Campos formativos']}, los PDA: ${responses['PDA']}, los ejes articuladores: ${responses['Ejes articuladores']}, y los rasgos del perfil de egreso: ${responses['Rasgos del perfil de egreso']}. 
+    
+    El proyecto debe durar exactamente ${responses['Duración en semanas']} semanas, con 5 días de actividades detalladas por cada semana. **Cada día incluirá exactamente ${responses['Cantidad de actividades diarias']} actividades**, sin excepción ni variación en el número. Asegúrate de que todas las actividades sean claras, prácticas y alineadas con los objetivos, la estrategia didáctica seleccionada, y que integren los PDA, ejes articuladores, y rasgos del perfil de egreso relevantes en cada actividad diaria.
+
+    Estructura el contenido para que se presente claramente en formato semanal, y dentro de cada semana describe cada día por separado con las actividades correspondientes, usando la estructura solicitada.
+
+    El formato esperado es:
+    
+    ## Semana X:
+    - **Día 1: Nombre de la actividad** - Descripción de la actividad que alinee con ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
+        1. Actividad 1: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
+        2. Actividad 2: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
+        3. ...(hasta ${responses['Cantidad de actividades diarias']} actividades)
+    - **Día 2: Nombre de la actividad** - Descripción de la actividad.
+        1. Actividad 1: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
+        2. ...(hasta ${responses['Cantidad de actividades diarias']} actividades)
+    - ... (hasta 5 días por semana)
+
+    Al final del proyecto, agrega una breve reflexión o conclusión sobre el impacto esperado del proyecto en los estudiantes, considerando el desarrollo de competencias alineadas con ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
+`;
+        try {
+            // Primer prompt para obtener el texto del proyecto
+            const response1 = await fetch('http://localhost:3001/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: prompt1 }),
+            });
+    
+            if (!response1.ok) {
+                throw new Error('Error al enviar el primer prompt');
+            }
+    
+            const data1 = await response1.json();
+            setPlaneacionTexto(data1.data); // Almacenar el texto de planeación en el estado
+    
+            // Segundo prompt para obtener la rúbrica de evaluación
+            const prompt2 = `Dame una rúbrica de evaluación en formato JSON para el proyecto que me diste: "${data1.data}". Incluye 5 criterios de exigencia, cada uno con 4 niveles de cumplimiento ("regular", "bien", "muy bien" y "excelente"). El formato debe ser un array de objetos JSON como: [{"criterio": "Nombre del criterio", "regular": "Descripción regular", "bien": "Descripción bien", "muyBien": "Descripción muy bien", "excelente": "Descripción excelente"}] y que cada descripción tenga menos de 20 palabras.`;
+    
+            const response2 = await fetch('http://localhost:3001/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: prompt2 }),
+            });
+    
+            if (!response2.ok) {
+                throw new Error('Error al enviar el segundo prompt');
+            }
+    
+            const data2 = await response2.json();
             
-    //         const data = await response.json();
-    //         console.log('Respuesta del servidor:', data);
-    //     } catch (error) {
-    //         console.error('Error al subir datos al servidor:', error);
-    //     }
-    // };
+            // Limpia el texto del formato adicional antes de usarlo directamente como texto
+            const cleanedData = data2.data.replace(/```json|```/g, '');  // Elimina los delimitadores de bloque de código
+            
+            setHerramientasEvaluacionTexto(cleanedData); // Almacenar el texto de la rúbrica como string sin parsearlo
+            
+            // Habilitar el botón de descarga
+            setIsPDFReady(true);
+    
+        } catch (error) {
+            console.error('Error al enviar los prompts al servidor:', error);
+            addMessage("Dodi", "Hubo un problema al generar los textos. Inténtalo de nuevo.");
+        }
+    };
+    
+    
+    
+
+
+
+
 
     useEffect(() => {
         if (chatBox.current) {
@@ -294,7 +383,9 @@ const DodiChatbot = () => {
                         }
                     };
                     
-                    
+                    setResponses(updatedResponses);
+
+        
         
                     if (requirePaymentProof) {
                         addMessage("Dodi", "Gracias. Ahora, por favor sube una foto de tu comprobante de pago en formato PNG, JPG . (solo archivos de Maximo 10 Mb)");
@@ -314,8 +405,9 @@ const DodiChatbot = () => {
         
                                                     // Enviar los datos junto con el comprobante
                                                     await enviarDatosAlServidor(file);
+                                                    enviarDatosPlanAlServidor(); // Enviar el prompt concatenado al backend
                                                     setStep(13);
-                                                    addMessage("Dodi", "¡Gracias! Hemos recibido tu comprobante de pago. Te enviaremos la planeación en las próximas 2 horas.");
+                                                    addMessage("Dodi", "¡Gracias! Generando tu planeación...");
                                                 }
                                             }}
                                         />
@@ -430,7 +522,7 @@ const DodiChatbot = () => {
                         <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en proyectos")}>Aprendizaje basado en Proyectos</button>
                         <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en la indagación")}>Aprendizaje basado en Indagación (STEM)</button>
                         <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en problemas")}>Aprendizaje basado en Problemas</button>
-                        <button className="option-button" onClick={() => sendMessage("Aprendizaje servicio")}>Aprendizaje basado en Servicio</button>
+                        <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en servicio")}>Aprendizaje basado en Servicio</button>
                         <button className="option-button" onClick={() => sendMessage("Rincones de trabajo")}>Modalidad de Trabajo: Rincones de trabajo</button>
                         <button className="option-button" onClick={() => sendMessage("Talleres críticos")}>Modalidad de Trabajo: Talleres críticos</button>
                         <button className="option-button" onClick={() => sendMessage("Centros de interés")}>Modalidad de Trabajo: Centros de interés</button>
@@ -465,6 +557,17 @@ const DodiChatbot = () => {
             </div>
         
             <button className="reset-button" onClick={resetChat}>Reiniciar Chat</button>
+
+            <div>
+        {/* Otros elementos del chat */}
+
+        {/* Botón de descarga PDF, visible cuando el PDF está listo */}
+        {isPDFReady && (
+            <button onClick={() => descargarPDF()}>
+                Descargar Planeación y Evaluación en PDF
+            </button>
+        )}
+    </div>
         </div>
     );
 };
