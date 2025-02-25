@@ -213,8 +213,6 @@
   margin-top: 10px;
 }
 
-
-
 @media only screen and (max-width: 480px) {
   .chat-container {
     width: 100%;
@@ -241,7 +239,6 @@
     }
   }
 }
-
 
 @media only screen and (min-width: 768px) and (max-width: 1024px) {
   .chat-container {
@@ -270,7 +267,6 @@
   }
 }
 
-
 @media only screen and (min-width: 1024px) and (max-width: 1440px) {
   .chat-container {
     width: 80%;
@@ -298,7 +294,6 @@
     }
   }
 }
-
 
 .reset-button {
   background-color: #ff5c5c;
@@ -380,7 +375,6 @@
   color: #333;
 }
 
-/* Botón de confirmación de pago */
 .payment-details button {
   background: #007BFF;
   color: #fff;
@@ -439,3 +433,110 @@
 .payment-details button:last-of-type:hover {
   background-color: #005ea6;
 }
+
+/* ================================
+   Estilos para el Modal de Autenticación
+   ================================ */
+   .auth-option {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; // Espacio vertical entre botones
+    margin-bottom: 1.5rem;
+  
+    .option-button {
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      &:hover {
+        background: #0056b3;
+      }
+    }
+  }
+  
+  .auth-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+    button {
+      background: transparent;
+      border: none;
+      font-size: 1.1rem;
+      margin: 0 1rem;
+      padding-bottom: 0.5rem;
+      cursor: pointer;
+      color: #555;
+      transition: color 0.3s ease, border-bottom 0.3s ease;
+      &:hover {
+        color: #007BFF;
+      }
+      &.active {
+        border-bottom: 2px solid #007BFF;
+        color: #007BFF;
+      }
+    }
+  }
+  
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    input {
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+      &:focus {
+        outline: none;
+        border-color: #007BFF;
+      }
+    }
+    .terms-checkbox {
+      display: flex;
+      align-items: center;
+      margin: 0.5rem 0;
+      input {
+        margin-right: 0.5rem;
+      }
+      label {
+        font-size: 0.9rem;
+        color: #555;
+      }
+    }
+    .continue-button {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      &:hover {
+        background: #218838;
+      }
+    }
+  }
+  
+  .auth-switch {
+    margin-top: 1rem;
+    p {
+      font-size: 0.9rem;
+      color: #555;
+      button {
+        background: none;
+        border: none;
+        color: #007BFF;
+        cursor: pointer;
+        text-decoration: underline;
+        font-size: 0.9rem;
+        padding: 0;
+        margin-left: 0.5rem;
+      }
+    }
+  }
