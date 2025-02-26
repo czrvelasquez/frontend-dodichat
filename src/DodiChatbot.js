@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './DodiChatbot.scss';
+import PaymentOptions from './paymentOptions';
 
 const DodiChatbot = () => {
   const [step, setStep] = useState(0);
@@ -12,14 +13,16 @@ const DodiChatbot = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalActive, setIsModalActive] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  // Estados para almacenar los textos generados (se mantienen para visualización si se desea)
+  // Estado para definir el contenido del modal de pago: "auth" o "payment"
+  const [paymentModalContent, setPaymentModalContent] = useState("auth");
+
+  // Estados para almacenar los textos generados (para visualización)
   const [planeacionTexto, setPlaneacionTexto] = useState('');
   const [herramientasEvaluacionTexto, setHerramientasEvaluacionTexto] = useState('');
   const [isPDFReady, setIsPDFReady] = useState(false);
-  // Estado para diferenciar entre usuario gratuito y premium
+  // Estado para diferenciar usuario autenticado (premium o free)
   const [isPremium, setIsPremium] = useState(false);
   // Estados para autenticación
-  // authMode: "" (ningún modo seleccionado), "register" o "login"
   const [authMode, setAuthMode] = useState("");
   // Campos de registro
   const [registerName, setRegisterName] = useState('');
@@ -35,9 +38,16 @@ const DodiChatbot = () => {
 
   const chatBox = React.createRef();
 
+  // Al cargar, establecemos freePlanCount y verificamos si hay token; si existe, obtenemos el nombre y saludamos.
   useEffect(() => {
     const savedCount = localStorage.getItem('freePlanCount') || 0;
     setFreePlanCount(parseInt(savedCount, 10));
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsPremium(true);
+      const username = localStorage.getItem('username') || "Maestro";
+      addMessage("Dodi", `Hola ${username}, bienvenido, ¿cómo podemos ayudarte?`);
+    }
   }, []);
 
   const updateFreePlanCount = () => {
@@ -59,17 +69,22 @@ const DodiChatbot = () => {
     addMessage("Dodi", "¡Hola! ¿En qué puedo ayudarte hoy?");
   };
 
-  // Función de descarga que usa los datos recibidos como parámetros
+  // Funciones de descarga que incluyen token en headers
   const descargarPDF = async (planeacion, herramientas) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3001/api/generate-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planeacion: planeacion,
-          herramientasEvaluacion: herramientas,
-        }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ planeacion, herramientasEvaluacion: herramientas }),
       });
+      if (response.status === 403) {
+        openPaymentModal();
+        return;
+      }
       if (!response.ok) {
         throw new Error('Error al generar el PDF en el servidor.');
       }
@@ -90,14 +105,19 @@ const DodiChatbot = () => {
 
   const descargarDOCX = async (planeacion, herramientas) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3001/api/generate-docx', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planeacion: planeacion,
-          herramientasEvaluacion: herramientas,
-        }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ planeacion, herramientasEvaluacion: herramientas }),
       });
+      if (response.status === 403) {
+        openPaymentModal();
+        return;
+      }
       if (!response.ok) {
         throw new Error('Error al generar el DOCX en el servidor.');
       }
@@ -116,19 +136,18 @@ const DodiChatbot = () => {
     }
   };
 
-  // Función modificada para retornar los textos generados
+  // Función para enviar datos al servidor (con token)
   const enviarDatosPlanAlServidor = async () => {
+    const token = localStorage.getItem('token');
     const prompt1 = `
     Actúa como un docente experto en planeación y proyectos interdisciplinarios. Realiza un proyecto para el nivel y grado: ${responses['Nivel y grado educativo']}, que incluya la situación problema: ${responses['Situación problema']}, y use la estrategia didáctica seleccionada: ${responses['Estrategia didáctica']}. Además, considera los campos formativos: ${responses['Campos formativos']}, los PDA: ${responses['PDA']}, los ejes articuladores: ${responses['Ejes articuladores']}, y los rasgos del perfil de egreso: ${responses['Rasgos del perfil de egreso']}.
     
     El proyecto debe durar exactamente ${responses['Duración en semanas']} semanas, con 5 días de actividades detalladas por cada semana. **Cada día incluirá exactamente ${responses['Cantidad de actividades diarias']} actividades**, sin excepción ni variación en el número. Asegúrate de que todas las actividades sean claras, prácticas y alineadas con los objetivos, la estrategia didáctica seleccionada, y que integren los PDA, ejes articuladores, y rasgos del perfil de egreso relevantes en cada actividad diaria.
     
-    Estructura el contenido para que se presente claramente en formato semanal, y dentro de cada semana describe cada día por separado con las actividades correspondientes, usando la estructura solicitada.
-    
-    El formato esperado es:
+    Estructura el contenido para que se presente claramente en formato semanal, y dentro de cada semana describe cada día por separado con las actividades correspondientes, usando la siguiente estructura:
     
     ## Semana X:
-    - **Día 1: Nombre de la actividad** - Descripción de la actividad que alinee con ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
+    - **Día 1: Nombre de la actividad** - Descripción de la actividad que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
         1. Actividad 1: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
         2. Actividad 2: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
         3. ...(hasta ${responses['Cantidad de actividades diarias']} actividades)
@@ -136,12 +155,15 @@ const DodiChatbot = () => {
         1. Actividad 1: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
         2. ...(hasta ${responses['Cantidad de actividades diarias']} actividades)
     - ... (hasta 5 días por semana)
-    Repite esto por todas las semanas, me interesa que cada semana contenga sus actividades detalladas, sin resumir, ni repetir, ni sugerir, requiero que especifiques las actividades a desarrollar en cada semana por cada día, no importa que se extienda la respuesta
-    es decir no digas que siga la misma estructura de la actividades de la semanna anterior, mas bien desarrolla y siempre escribe las actividades una por una, no importa la extención de la respuesta.`;
+    Repite esto por todas las semanas, especificando todas las actividades detalladas de cada día.
+    `;
     try {
       const response1 = await fetch('http://localhost:3001/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ prompt: prompt1 }),
       });
       if (!response1.ok) {
@@ -149,12 +171,14 @@ const DodiChatbot = () => {
       }
       const data1 = await response1.json();
       const planeacion = data1.data;
-      // Actualizamos el estado (opcional, para visualización)
       setPlaneacionTexto(planeacion);
       const prompt2 = `Dame una rúbrica de evaluación en formato JSON para el proyecto que me diste: "${planeacion}". Incluye 5 criterios de exigencia, cada uno con 4 niveles de cumplimiento ("regular", "bien", "muy bien" y "excelente"). El formato debe ser un array de objetos JSON como: [{"criterio": "Nombre del criterio", "regular": "Descripción regular", "bien": "Descripción bien", "muyBien": "Descripción muy bien", "excelente": "Descripción excelente"}] y que cada descripción tenga menos de 20 palabras.`;
       const response2 = await fetch('http://localhost:3001/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ prompt: prompt2 }),
       });
       if (!response2.ok) {
@@ -187,7 +211,13 @@ const DodiChatbot = () => {
     setSelectedImage(null);
   };
 
+  // Abre el modal de pago: si hay token se muestra PaymentOptions, sino modal de autenticación
   const openPaymentModal = () => {
+    if (localStorage.getItem('token')) {
+      setPaymentModalContent("payment");
+    } else {
+      setPaymentModalContent("auth");
+    }
     setShowPaymentModal(true);
     setAuthMode("");
   };
@@ -195,7 +225,6 @@ const DodiChatbot = () => {
   const closePaymentModal = () => {
     setShowPaymentModal(false);
     setAuthMode("");
-    // Resetear campos de autenticación
     setRegisterName('');
     setRegisterEmail('');
     setRegisterConfirmEmail('');
@@ -239,6 +268,8 @@ const DodiChatbot = () => {
         throw new Error("Error en el registro");
       }
       const data = await response.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('username', registerName);
       setIsPremium(true);
       setShowPaymentModal(false);
       setShowButtons(false);
@@ -268,10 +299,13 @@ const DodiChatbot = () => {
         throw new Error("Error en el login");
       }
       const data = await response.json();
+      localStorage.setItem('token', data.token);
+      // Suponiendo que el backend devuelve el nombre o lo almacenamos previamente
+      const username = localStorage.getItem('username') || loginEmail;
       setIsPremium(true);
       setShowPaymentModal(false);
       setShowButtons(false);
-      addMessage("Dodi", `¡Bienvenido de nuevo! Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').`);
+      addMessage("Dodi", `¡Bienvenido de nuevo, ${username}! Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').`);
       setStep(1);
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
@@ -288,8 +322,7 @@ const DodiChatbot = () => {
     if (step === 0) {
       if (inputToSend.toLowerCase() === "probar mis planeaciones gratis") {
         if (!isPremium && freePlanCount >= 2) {
-          addMessage("Dodi", "Lo siento, ya has usado tus 2 planeaciones gratuitas. Suscríbete o paga por cada planeación.");
-          setShowButtons(true);
+          openPaymentModal();
           return;
         }
         updateFreePlanCount();
@@ -400,12 +433,39 @@ const DodiChatbot = () => {
       if (!isNaN(activities) && activities >= 1 && activities <= 5) {
         newResponses["Cantidad de actividades diarias"] = activities.toString();
         setResponses(newResponses);
-        addMessage("Dodi", "Por favor, ingresa tu número de WhatsApp para enviarte la planeación.");
-        setStep(10);
+        // Si el usuario ya está autenticado, se omiten las preguntas de WhatsApp y correo
+        if (isPremium) {
+          setUserInput('');
+          setMessages([]);
+          addMessage("Dodi", (
+            <div style={{ textAlign: 'center' }}>
+              <img 
+                src="https://i.ibb.co/x1nL93H/generating.gif" 
+                alt="Generando Planeación" 
+                style={{ maxWidth: '200px', marginBottom: '10px' }} 
+              />
+              <p>Estamos generando tu planeación. Por favor espera...</p>
+            </div>
+          ));
+          try {
+            const result = await enviarDatosPlanAlServidor();
+            setStep(13);
+            if (result) {
+              await descargarDOCX(result.planeacion, result.herramientas);
+              addMessage("Dodi", "¡Gracias! Tu planeación ha sido generada y descargada.");
+            }
+          } catch (error) {
+            console.error("Error al descargar documento:", error);
+            openPaymentModal();
+          }
+        } else {
+          addMessage("Dodi", "Por favor, ingresa tu número de WhatsApp para enviarte la planeación.");
+          setStep(10);
+        }
       } else {
         addMessage("Dodi", "Por favor ingresa un número de actividades válido entre 1 y 5.");
       }
-    } else if (step === 10) {
+    } else if (step === 10 && !isPremium) {
       const whatsappRegex = /^\d{10}$/;
       if (whatsappRegex.test(inputToSend)) {
         newResponses["WhatsApp"] = inputToSend;
@@ -415,12 +475,11 @@ const DodiChatbot = () => {
       } else {
         addMessage("Dodi", "El número de WhatsApp debe tener 10 dígitos. Por favor, ingresa un número válido.");
       }
-    } else if (step === 11) {
+    } else if (step === 11 && !isPremium) {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (emailRegex.test(inputToSend)) {
         setResponses(prev => ({ ...prev, correo: inputToSend }));
         setUserInput('');
-        // Limpiar el chat y mostrar mensaje con imagen informando que se está generando la planeación
         setMessages([]);
         addMessage("Dodi", (
           <div style={{ textAlign: 'center' }}>
@@ -432,16 +491,16 @@ const DodiChatbot = () => {
             <p>Estamos generando tu planeación. Por favor espera...</p>
           </div>
         ));
-        // Capturamos el resultado de la generación para usarlo inmediatamente
-        const result = await enviarDatosPlanAlServidor();
-        setStep(13);
-        if (result) {
-          if (isPremium) {
-            await descargarDOCX(result.planeacion, result.herramientas);
-          } else {
+        try {
+          const result = await enviarDatosPlanAlServidor();
+          setStep(13);
+          if (result) {
             await descargarPDF(result.planeacion, result.herramientas);
+            addMessage("Dodi", "¡Gracias! Tu planeación ha sido generada y descargada.");
           }
-          addMessage("Dodi", "¡Gracias! Tu planeación ha sido generada y descargada.");
+        } catch (error) {
+          console.error("Error al descargar documento:", error);
+          openPaymentModal();
         }
       } else {
         addMessage("Dodi", "El correo electrónico ingresado no es válido. Por favor, ingresa un correo electrónico válido.");
@@ -492,15 +551,17 @@ const DodiChatbot = () => {
         {isModalActive && (
           <div className="modal active" onClick={closeModal}>
             <span className="close-button" onClick={closeModal}>&times;</span>
-            <img src={selectedImage} alt="Zoomed" className="modal-content" />
+            <img src="https://i.ibb.co/x1nL93H/generating.gif" alt="Zoomed" className="modal-content" />
           </div>
         )}
 
         {showButtons && (
           <>
-            <button className="large-option-button" onClick={() => sendMessage("Probar mis planeaciones gratis")}>
-              Probar mis planeaciones gratis
-            </button>
+            {!isPremium && (
+              <button className="large-option-button" onClick={() => sendMessage("Probar mis planeaciones gratis")}>
+                Probar mis planeaciones gratis
+              </button>
+            )}
             <button className="large-option-button" onClick={() => sendMessage("Subscribirme o pagar por cada planeación")}>
               Subscribirme o pagar por cada planeación
             </button>
@@ -510,130 +571,117 @@ const DodiChatbot = () => {
         {showPaymentModal && (
           <div className="modal active">
             <div className="modal-content">
-              {authMode === "" ? (
-                <div className="auth-option">
-                  <button className="option-button" onClick={() => setAuthMode("register")}>
-                    Crear Cuenta
-                  </button>
-                  <button className="option-button" onClick={() => setAuthMode("login")}>
-                    Iniciar Sesión
-                  </button>
-                </div>
-              ) : authMode === "register" ? (
+              {paymentModalContent === "auth" ? (
                 <>
-                  <div className="auth-form">
-                    <input
-                      type="text"
-                      placeholder="Nombre"
-                      value={registerName}
-                      onChange={e => setRegisterName(e.target.value)}
-                    />
-                    <input
-                      type="email"
-                      placeholder="Correo electrónico"
-                      value={registerEmail}
-                      onChange={e => setRegisterEmail(e.target.value)}
-                    />
-                    <input
-                      type="email"
-                      placeholder="Confirmar correo electrónico"
-                      value={registerConfirmEmail}
-                      onChange={e => setRegisterConfirmEmail(e.target.value)}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Contraseña"
-                      value={registerPassword}
-                      onChange={e => setRegisterPassword(e.target.value)}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Confirmar Contraseña"
-                      value={registerConfirmPassword}
-                      onChange={e => setRegisterConfirmPassword(e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Whatsapp"
-                      value={registerWhatsapp}
-                      onChange={e => setRegisterWhatsapp(e.target.value)}
-                    />
-                    <div className="terms-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={registerTermsAccepted}
-                        onChange={e => setRegisterTermsAccepted(e.target.checked)}
-                      />
-                      <label>
-                        Acepto los Términos y Condiciones de Docencia Digital
-                      </label>
-                    </div>
-                    <button className="continue-button" onClick={handleRegistration}>
+                  <div className="auth-option">
+                    <button className="option-button" onClick={() => setAuthMode("register")}>
                       Crear Cuenta
                     </button>
-                  </div>
-                  <div className="auth-switch">
-                    <p>¿Ya tienes cuenta? <button onClick={() => setAuthMode("login")}>Iniciar Sesión</button></p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="auth-form">
-                    <input
-                      type="email"
-                      placeholder="Correo electrónico"
-                      value={loginEmail}
-                      onChange={e => setLoginEmail(e.target.value)}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Contraseña"
-                      value={loginPassword}
-                      onChange={e => setLoginPassword(e.target.value)}
-                    />
-                    <button className="continue-button" onClick={handleLogin}>
+                    <button className="option-button" onClick={() => setAuthMode("login")}>
                       Iniciar Sesión
                     </button>
                   </div>
-                  <div className="auth-switch">
-                    <p>¿No tienes cuenta? <button onClick={() => setAuthMode("register")}>Crear Cuenta</button></p>
-                  </div>
+                  {authMode === "register" ? (
+                    <>
+                      <div className="auth-form">
+                        <input
+                          type="text"
+                          placeholder="Nombre"
+                          value={registerName}
+                          onChange={e => setRegisterName(e.target.value)}
+                        />
+                        <input
+                          type="email"
+                          placeholder="Correo electrónico"
+                          value={registerEmail}
+                          onChange={e => setRegisterEmail(e.target.value)}
+                        />
+                        <input
+                          type="email"
+                          placeholder="Confirmar correo electrónico"
+                          value={registerConfirmEmail}
+                          onChange={e => setRegisterConfirmEmail(e.target.value)}
+                        />
+                        <input
+                          type="password"
+                          placeholder="Contraseña"
+                          value={registerPassword}
+                          onChange={e => setRegisterPassword(e.target.value)}
+                        />
+                        <input
+                          type="password"
+                          placeholder="Confirmar Contraseña"
+                          value={registerConfirmPassword}
+                          onChange={e => setRegisterConfirmPassword(e.target.value)}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Whatsapp"
+                          value={registerWhatsapp}
+                          onChange={e => setRegisterWhatsapp(e.target.value)}
+                        />
+                        <div className="terms-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={registerTermsAccepted}
+                            onChange={e => setRegisterTermsAccepted(e.target.checked)}
+                          />
+                          <label>
+                            Acepto los Términos y Condiciones de Docencia Digital
+                          </label>
+                        </div>
+                        <button className="continue-button" onClick={handleRegistration}>
+                          Crear Cuenta
+                        </button>
+                      </div>
+                      <div className="auth-switch">
+                        <p>¿Ya tienes cuenta? <button onClick={() => setAuthMode("login")}>Iniciar Sesión</button></p>
+                      </div>
+                    </>
+                  ) : authMode === "login" ? (
+                    <>
+                      <div className="auth-form">
+                        <input
+                          type="email"
+                          placeholder="Correo electrónico"
+                          value={loginEmail}
+                          onChange={e => setLoginEmail(e.target.value)}
+                        />
+                        <input
+                          type="password"
+                          placeholder="Contraseña"
+                          value={loginPassword}
+                          onChange={e => setLoginPassword(e.target.value)}
+                        />
+                        <button className="continue-button" onClick={handleLogin}>
+                          Iniciar Sesión
+                        </button>
+                      </div>
+                      <div className="auth-switch">
+                        <p>¿No tienes cuenta? <button onClick={() => setAuthMode("register")}>Crear Cuenta</button></p>
+                      </div>
+                    </>
+                  ) : null}
+                  <button className="close-button" onClick={closePaymentModal}>Cerrar</button>
                 </>
+              ) : (
+                <PaymentOptions />
               )}
-              <button className="close-button" onClick={closePaymentModal}>Cerrar</button>
             </div>
           </div>
         )}
 
         {step === 3 && (
           <div className="button-group">
-            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en proyectos")}>
-              Aprendizaje basado en Proyectos
-            </button>
-            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en la indagación")}>
-              Aprendizaje basado en Indagación (STEM)
-            </button>
-            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en problemas")}>
-              Aprendizaje basado en Problemas
-            </button>
-            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en servicio")}>
-              Aprendizaje basado en Servicio
-            </button>
-            <button className="option-button" onClick={() => sendMessage("Rincones de trabajo")}>
-              Modalidad de Trabajo: Rincones de trabajo
-            </button>
-            <button className="option-button" onClick={() => sendMessage("Talleres críticos")}>
-              Modalidad de Trabajo: Talleres críticos
-            </button>
-            <button className="option-button" onClick={() => sendMessage("Centros de interés")}>
-              Modalidad de Trabajo: Centros de interés
-            </button>
-            <button className="option-button" onClick={() => sendMessage("Unidad didáctica")}>
-              Modalidad de Trabajo: Unidad didáctica
-            </button>
-            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en juegos")}>
-              Aprendizaje basado en juegos
-            </button>
+            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en proyectos")}>Aprendizaje basado en Proyectos</button>
+            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en la indagación")}>Aprendizaje basado en Indagación (STEM)</button>
+            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en problemas")}>Aprendizaje basado en Problemas</button>
+            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en servicio")}>Aprendizaje basado en Servicio</button>
+            <button className="option-button" onClick={() => sendMessage("Rincones de trabajo")}>Modalidad de Trabajo: Rincones de trabajo</button>
+            <button className="option-button" onClick={() => sendMessage("Talleres críticos")}>Modalidad de Trabajo: Talleres críticos</button>
+            <button className="option-button" onClick={() => sendMessage("Centros de interés")}>Modalidad de Trabajo: Centros de interés</button>
+            <button className="option-button" onClick={() => sendMessage("Unidad didáctica")}>Modalidad de Trabajo: Unidad didáctica</button>
+            <button className="option-button" onClick={() => sendMessage("Aprendizaje basado en juegos")}>Aprendizaje basado en juegos</button>
           </div>
         )}
 
@@ -657,7 +705,7 @@ const DodiChatbot = () => {
           </div>
         )}
 
-        {!showButtons && step !== 3 && step !== 4 && (
+        {(!showButtons && step !== 3 && step !== 4) && (
           <>
             <input
               type="text"
