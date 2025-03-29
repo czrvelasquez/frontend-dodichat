@@ -13,18 +13,17 @@ const DodiChatbot = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalActive, setIsModalActive] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  // Estado para definir el contenido del modal de pago: "auth" o "payment"
+  // Modal content: "auth" para iniciar sesión/crear cuenta o "payment" para suscripción
   const [paymentModalContent, setPaymentModalContent] = useState("auth");
 
-  // Estados para almacenar los textos generados (para visualización)
+  // Estados para los textos generados
   const [planeacionTexto, setPlaneacionTexto] = useState('');
   const [herramientasEvaluacionTexto, setHerramientasEvaluacionTexto] = useState('');
   const [isPDFReady, setIsPDFReady] = useState(false);
-  // Estado para diferenciar usuario autenticado (premium o free)
+  // Estado para diferenciar usuario autenticado (premium) o libre
   const [isPremium, setIsPremium] = useState(false);
   // Estados para autenticación
   const [authMode, setAuthMode] = useState("");
-  // Campos de registro
   const [registerName, setRegisterName] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerConfirmEmail, setRegisterConfirmEmail] = useState('');
@@ -32,22 +31,15 @@ const DodiChatbot = () => {
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [registerWhatsapp, setRegisterWhatsapp] = useState('');
   const [registerTermsAccepted, setRegisterTermsAccepted] = useState(false);
-  // Campos de login
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
   const chatBox = React.createRef();
 
-  // Al cargar, establecemos freePlanCount y verificamos si hay token; si existe, obtenemos el nombre y saludamos.
+  // Al cargar, establecemos freePlanCount.
   useEffect(() => {
     const savedCount = localStorage.getItem('freePlanCount') || 0;
     setFreePlanCount(parseInt(savedCount, 10));
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsPremium(true);
-      const username = localStorage.getItem('username') || "Maestro";
-      addMessage("Dodi", `Hola ${username}, bienvenido, ¿cómo podemos ayudarte?`);
-    }
   }, []);
 
   const updateFreePlanCount = () => {
@@ -69,7 +61,7 @@ const DodiChatbot = () => {
     addMessage("Dodi", "¡Hola! ¿En qué puedo ayudarte hoy?");
   };
 
-  // Funciones de descarga que incluyen token en headers
+  // Funciones de descarga con token en headers
   const descargarPDF = async (planeacion, herramientas) => {
     try {
       const token = localStorage.getItem('token');
@@ -82,7 +74,7 @@ const DodiChatbot = () => {
         body: JSON.stringify({ planeacion, herramientasEvaluacion: herramientas }),
       });
       if (response.status === 403) {
-        openPaymentModal();
+        openPaymentModal("payment");
         return;
       }
       if (!response.ok) {
@@ -115,7 +107,7 @@ const DodiChatbot = () => {
         body: JSON.stringify({ planeacion, herramientasEvaluacion: herramientas }),
       });
       if (response.status === 403) {
-        openPaymentModal();
+        openPaymentModal("payment");
         return;
       }
       if (!response.ok) {
@@ -136,7 +128,7 @@ const DodiChatbot = () => {
     }
   };
 
-  // Función para enviar datos al servidor (con token)
+  // Función para enviar datos al servidor
   const enviarDatosPlanAlServidor = async () => {
     const token = localStorage.getItem('token');
     const prompt1 = `
@@ -211,13 +203,9 @@ const DodiChatbot = () => {
     setSelectedImage(null);
   };
 
-  // Abre el modal de pago: si hay token se muestra PaymentOptions, sino modal de autenticación
-  const openPaymentModal = () => {
-    if (localStorage.getItem('token')) {
-      setPaymentModalContent("payment");
-    } else {
-      setPaymentModalContent("auth");
-    }
+  // openPaymentModal acepta un parámetro para determinar el contenido a mostrar ("auth" o "payment")
+  const openPaymentModal = (content = "auth") => {
+    setPaymentModalContent(content);
     setShowPaymentModal(true);
     setAuthMode("");
   };
@@ -234,6 +222,14 @@ const DodiChatbot = () => {
     setRegisterTermsAccepted(false);
     setLoginEmail('');
     setLoginPassword('');
+  };
+
+  // Función para cerrar sesión: elimina token, username y reinicia el estado
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    setIsPremium(false);
+    resetChat();
   };
 
   const handleRegistration = async () => {
@@ -300,7 +296,6 @@ const DodiChatbot = () => {
       }
       const data = await response.json();
       localStorage.setItem('token', data.token);
-      // Suponiendo que el backend devuelve el nombre o lo almacenamos previamente
       const username = localStorage.getItem('username') || loginEmail;
       setIsPremium(true);
       setShowPaymentModal(false);
@@ -321,8 +316,12 @@ const DodiChatbot = () => {
 
     if (step === 0) {
       if (inputToSend.toLowerCase() === "probar mis planeaciones gratis") {
-        if (!isPremium && freePlanCount >= 2) {
-          openPaymentModal();
+        if (freePlanCount >= 2) {
+          if (isPremium) {
+            openPaymentModal("payment");
+          } else {
+            openPaymentModal("auth");
+          }
           return;
         }
         updateFreePlanCount();
@@ -331,7 +330,7 @@ const DodiChatbot = () => {
         setStep(1);
       } else if (inputToSend.toLowerCase() === "subscribirme o pagar por cada planeación") {
         setShowButtons(false);
-        openPaymentModal();
+        openPaymentModal("auth");
       }
     } else if (step === 1) {
       const gradeRegex = /\b(\d|primero|segundo|tercero|cuarto|quinto|sexto)\b.*\b(primaria|secundaria|preescolar)\b/i;
@@ -433,7 +432,6 @@ const DodiChatbot = () => {
       if (!isNaN(activities) && activities >= 1 && activities <= 5) {
         newResponses["Cantidad de actividades diarias"] = activities.toString();
         setResponses(newResponses);
-        // Si el usuario ya está autenticado, se omiten las preguntas de WhatsApp y correo
         if (isPremium) {
           setUserInput('');
           setMessages([]);
@@ -456,7 +454,7 @@ const DodiChatbot = () => {
             }
           } catch (error) {
             console.error("Error al descargar documento:", error);
-            openPaymentModal();
+            openPaymentModal("payment");
           }
         } else {
           addMessage("Dodi", "Por favor, ingresa tu número de WhatsApp para enviarte la planeación.");
@@ -500,7 +498,7 @@ const DodiChatbot = () => {
           }
         } catch (error) {
           console.error("Error al descargar documento:", error);
-          openPaymentModal();
+          openPaymentModal("payment");
         }
       } else {
         addMessage("Dodi", "El correo electrónico ingresado no es válido. Por favor, ingresa un correo electrónico válido.");
@@ -541,6 +539,12 @@ const DodiChatbot = () => {
     <div className="chat-container">
       <img src="https://i.ibb.co/vL7vsyR/dodi.png" alt="Dodi Avatar" className="dodi-avatar" />
       <h2>Dodi - Asistente de Planeación</h2>
+      {/* Botón de cerrar sesión visible cuando el usuario está autenticado */}
+      {isPremium && (
+        <button className="logout-button" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
+      )}
       <div className="chat-box" ref={chatBox}>
         {messages.map((msg, index) => (
           <div key={index} className={msg.sender === "Dodi" ? "bot-message" : "user-message"}>
@@ -571,16 +575,23 @@ const DodiChatbot = () => {
         {showPaymentModal && (
           <div className="modal active">
             <div className="modal-content">
+              {(!isPremium && freePlanCount >= 2) && (
+                <p style={{ marginBottom: '10px', color: 'red', textAlign: 'center' }}>
+                  Lo sentimos, ya alcanzaste tus dos usos gratuitos, por favor crea una cuenta o inicia sesión para poder seguir usando nuestro portal de planeaciones.
+                </p>
+              )}
               {paymentModalContent === "auth" ? (
                 <>
-                  <div className="auth-option">
-                    <button className="option-button" onClick={() => setAuthMode("register")}>
-                      Crear Cuenta
-                    </button>
-                    <button className="option-button" onClick={() => setAuthMode("login")}>
-                      Iniciar Sesión
-                    </button>
-                  </div>
+                  {!authMode && (
+                    <div className="auth-option">
+                      <button className="option-button" onClick={() => setAuthMode("register")}>
+                        Crear Cuenta
+                      </button>
+                      <button className="option-button" onClick={() => setAuthMode("login")}>
+                        Iniciar Sesión
+                      </button>
+                    </div>
+                  )}
                   {authMode === "register" ? (
                     <>
                       <div className="auth-form">
