@@ -1,3 +1,5 @@
+
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -10,4 +12,137 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+.nav-button {
+  background-color: #61dafb;
+  border: none;
+  color: white;
+  padding: 12px 20px;
+  margin: 10px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.nav-button:hover {
+  background-color: #4fb8de;
+}
+
+.rasgos-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0;
+}
+
+.rasgos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+.rasgo-card {
+  display: flex;
+  flex-direction: column;
+  background-color: #fdfdfd;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.rasgo-card:hover {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.option-button.selected {
+  background-color: #d9edf7;
+  color: #31708f;
+  border: 1px solid #bce8f1;
+}
+
+.rasgo-descripcion {
+  margin-top: 0.5rem;
+  background-color: #f5f5f5;
+  padding: 0.75rem;
+  border-left: 4px solid #5bc0de;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #333;
+  font-style: italic;
+}
+
+/* ======================== */
+/* MEDIA QUERIES RESPONSIVE */
+/* ======================== */
+
+@media (max-width: 768px) {
+  body {
+    padding: 20px 10px;
+  }
+
+  .chat-container {
+    padding: 15px;
+  }
+
+  .chat-box {
+    max-width: 100%;
+    min-height: 200px;
+    max-height: 400px;
+    padding: 15px;
+  }
+
+  .large-option-button {
+    font-size: 0.95rem;
+    padding: 10px 16px;
+  }
+
+  .modal-content {
+    padding: 20px;
+  }
+
+  .nav-button,
+  .option-button,
+  .send-button,
+  .reset-button,
+  .continue-button {
+    font-size: 0.9rem;
+    padding: 10px;
+    width: 100%;
+    margin: 6px 0;
+  }
+
+  .profile-icon-container {
+    top: 10px;
+    right: 10px;
+  }
+
+  .dodi-avatar {
+    width: 90px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-box {
+    font-size: 0.9rem;
+  }
+
+  .modal-content {
+    padding: 15px;
+  }
+
+  .auth-form input,
+  .auth-form select {
+    font-size: 0.95rem;
+  }
+
+  .option-button,
+  .send-button {
+    font-size: 0.85rem;
+  }
 }

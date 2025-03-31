@@ -1,0 +1,88 @@
+/* Fondo animado degradado */
+body {
+    background: linear-gradient(135deg, #b3d4fc, #dbefff, #c0e7ff);
+    background-size: 400% 400%;
+    animation: gradientBG 20s ease infinite;
+  }
+  
+  @keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .homepage-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+  
+  .homepage-content {
+    background: rgba(255, 255, 255, 0.92);
+    padding: 3rem;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    width: 100%;
+  }
+  
+  .homepage-title {
+    font-size: 2.5rem;
+    color: #004999;
+    margin-bottom: 1rem;
+  }
+  
+  .homepage-title span {
+    color: #0088cc;
+  }
+  
+  .homepage-subtitle {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 2rem;
+  }
+  
+  .homepage-video video {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    margin-bottom: 2rem;
+  }
+  
+  .homepage-buttons {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .homepage-button {
+    background-color: #0088cc;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    text-decoration: none;
+  }
+  
+  .homepage-button:hover {
+    background-color: #006bb3;
+  }
+  
+  .homepage-button.outline {
+    background: white;
+    color: #0088cc;
+    border: 2px solid #0088cc;
+  }
+  
+  .homepage-button.outline:hover {
+    background-color: #e6f5ff;
+  }
+  

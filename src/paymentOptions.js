@@ -1,51 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-function PaymentOptions() {
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Tus priceIds creados en Stripe
-  const PRICE_MENSUAL = "price_1QwqYsBXXQPM9lokE7X6CwgP"; 
-  const PRICE_ANUAL = "price_1QwIbABXXQPM9lokVvS2dh67";
-
-  const handleCheckout = async (priceId) => {
-    try {
-      setIsLoading(true);
-      // Llamas a tu backend 
-      const response = await fetch("http://localhost:3001/api/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId })
-      });
-      if (!response.ok) {
-        throw new Error("Error al crear la sesión de checkout");
-      }
-      const data = await response.json();
-
-      // data.url es la URL de Stripe Checkout
-      window.location.href = data.url;
-    } catch (error) {
-      console.error("Error al iniciar checkout:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+function PaymentOptions({ onClose }) {
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Elige tu Plan</h2>
+    <div style={{ padding: 20, textAlign: 'center' }}>
+      <h2>¿Cómo continuar?</h2>
       
-      <button onClick={() => handleCheckout(PRICE_MENSUAL)} disabled={isLoading}>
-        Suscribirme Mensual
-      </button>
-      <button 
-        onClick={() => handleCheckout(PRICE_ANUAL)} 
-        disabled={isLoading}
-        style={{ marginLeft: 10 }}
-      >
-        Suscribirme Anual
-      </button>
+      <p>Ya has usado tus dos planeaciones gratuitas. Mira este video donde te explicamos cómo puedes seguir usando la plataforma.</p>
       
-      {isLoading && <p>Procesando...</p>}
+      <div style={{ maxWidth: '100%', marginBottom: 20 }}>
+        <iframe
+          width="100%"
+          height="315"
+          src="https://www.youtube.com/embed/Nv6yPKdugCc?si=8NG9rmdJHXvcI-0w"
+          title="Video explicativo"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+      </div>
+
+      <button onClick={onClose} className="send-button">
+        Volver al chat
+      </button>
     </div>
   );
 }

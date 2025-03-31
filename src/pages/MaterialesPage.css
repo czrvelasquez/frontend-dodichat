@@ -1,0 +1,78 @@
+.materiales-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #dff6ff, #b9e9ff, #c0ecff);
+    background-size: 400% 400%;
+    animation: gradientBG 18s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+  
+  @keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .materiales-card {
+    background: rgba(255, 255, 255, 0.94);
+    padding: 3rem;
+    border-radius: 20px;
+    max-width: 700px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  }
+  
+  .materiales-card h2 {
+    font-size: 2rem;
+    color: #0077cc;
+    margin-bottom: 1rem;
+  }
+  
+  .materiales-subtext {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 1rem;
+  }
+  
+  .materiales-info {
+    color: #555;
+    margin-bottom: 2rem;
+  }
+  
+  .materiales-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .nav-button {
+    background-color: #0077cc;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .nav-button:hover {
+    background-color: #005fa3;
+  }
+  
+  .nav-button.outline {
+    background: white;
+    color: #0077cc;
+    border: 2px solid #0077cc;
+  }
+  
+  .nav-button.outline:hover {
+    background-color: #e0f4ff;
+  }
+  

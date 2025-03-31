@@ -1,0 +1,133 @@
+/* Fondo general con degradado animado */
+.page-container {
+    padding: 2rem;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e0f7fa, #ffffff, #e1f5fe);
+    background-size: 400% 400%;
+    animation: gradientAnimation 12s ease infinite;
+    color: #111; /* texto oscuro para contraste */
+  }
+  
+  @keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  /* Títulos */
+  h2 {
+    color: #0d47a1;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  /* Contenedor de filtros */
+  .filtros-container {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+  
+  .filtros-container select,
+  .filtros-container button {
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    color: #111;
+    background-color: #f0f8ff;
+    cursor: pointer;
+  }
+  
+  .filtros-container button:hover {
+    background-color: #d9f0ff;
+  }
+  
+  /* Botones de navegación */
+  .nav-button {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .nav-button:hover {
+    background-color: #1976d2;
+  }
+  
+  .nav-button.active {
+    background-color: #0d47a1;
+  }
+  
+  /* Cards de planeaciones */
+  .cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+  }
+  
+  .card-planeacion {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    max-width: 300px;
+    text-align: left;
+    transition: transform 0.2s ease;
+  }
+  
+  .card-planeacion:hover {
+    transform: scale(1.02);
+  }
+  
+  .card-planeacion img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+  }
+  
+  .card-content {
+    padding: 1rem;
+    color: #111;
+  }
+  
+  .card-content h4 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+    color: #0d47a1;
+  }
+  
+  .card-content p {
+    margin: 0.3rem 0;
+    font-size: 0.95rem;
+  }
+  
+  /* Banner publicitario */
+  .ad-banner {
+    background-color: #e3f2fd;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    color: #0d47a1;
+    margin-bottom: 1rem;
+  }
+  
+  .ad-banner .hover-info {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #333;
+  }
+  
+  .ad-banner .hover-info a {
+    display: inline-block;
+    margin-top: 0.5rem;
+  }
+  

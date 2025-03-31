@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import './DodiChatbot.scss';
 import PaymentOptions from './paymentOptions';
+import { Link } from 'react-router-dom';
+import WhatsAppSupportButton from '../src/WhatsAppSupportButton';
+import { jwtDecode } from "jwt-decode"; // ✅ Correcto
+
 
 const DodiChatbot = () => {
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const username = localStorage.getItem('username') || '';
+  const userInitial = username ? username.charAt(0).toUpperCase() : '';
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [membershipLevel, setMembershipLevel] = useState(localStorage.getItem('membershipLevel') || 'free');
+  const isPlusOrPremium = membershipLevel === 'plus' || membershipLevel === 'premium';  
+  const [showButtons, setShowButtons] = useState(!localStorage.getItem('token'));
   const [step, setStep] = useState(0);
   const [freePlanCount, setFreePlanCount] = useState(0);
-  const [showButtons, setShowButtons] = useState(true);
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [responses, setResponses] = useState({});
@@ -15,13 +25,12 @@ const DodiChatbot = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   // Modal content: "auth" para iniciar sesión/crear cuenta o "payment" para suscripción
   const [paymentModalContent, setPaymentModalContent] = useState("auth");
-
+  const [registerEstado, setRegisterEstado] = useState('');
   // Estados para los textos generados
   const [planeacionTexto, setPlaneacionTexto] = useState('');
   const [herramientasEvaluacionTexto, setHerramientasEvaluacionTexto] = useState('');
   const [isPDFReady, setIsPDFReady] = useState(false);
   // Estado para diferenciar usuario autenticado (premium) o libre
-  const [isPremium, setIsPremium] = useState(false);
   // Estados para autenticación
   const [authMode, setAuthMode] = useState("");
   const [registerName, setRegisterName] = useState('');
@@ -34,7 +43,25 @@ const DodiChatbot = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
+  const [selectedEjes, setSelectedEjes] = useState([]);
+  const [selectedRasgos, setSelectedRasgos] = useState([]);
+  const isFreeLoggedIn = isLoggedIn && membershipLevel === 'free';
+
+
   const chatBox = React.createRef();
+
+  const descripcionRasgos = {
+    "Ciudadanía y derechos": "Reconocer los derechos ciudadanos y oponerse a la injusticia y discriminación ",
+    "Diversidad y equidad de género": "Valorar la diversidad y reconocer la igualdad de género",
+    "Autoestima y desarrollo personal": "Valorar las propias capacidades y poseer conocimiento de sí mismo ",
+    "Pensamiento crítico": "Desarrollar el pensamiento crítico a partir de análisis, reflexión, diálogo, conciencia histórica, humanismo y argumentación fundada ",
+    "Uso de diversos lenguajes": "Intercambiar ideas mediante diferentes lenguajes ",
+    "Valoración de las ciencias y humanidades": "Desarrollar el pensamiento crítico que les permita valorar los conocimientos y saberes de las ciencias y humanidades ",
+    "Correlación entre el bienestar personal y el del medio ambiente": "Cuidar el cuerpo y evitar conductas de riesgo ",
+    "Interpretar fenómenos de manera científica": " Interpretar fenómenos, hechos y situaciones históricas, culturales, naturales y sociales",
+    "Interactuar con respeto a la diversidad": "Respetar la diversidad cultural, étnica, lingüística y de género ",
+    "Emplear las habilidades digitales": "Emplear las habilidades digitales de forma pertinente "
+  };
 
   // Al cargar, establecemos freePlanCount.
   useEffect(() => {
@@ -49,8 +76,6 @@ const DodiChatbot = () => {
   };
 
   const resetChat = () => {
-    setStep(0);
-    setShowButtons(true);
     setUserInput('');
     setMessages([]);
     setResponses({});
@@ -58,8 +83,34 @@ const DodiChatbot = () => {
     setSelectedImage(null);
     setIsModalActive(false);
     setShowPaymentModal(false);
-    addMessage("Dodi", "¡Hola! ¿En qué puedo ayudarte hoy?");
-  };
+    setAuthMode('');
+    setPlaneacionTexto('');
+    setHerramientasEvaluacionTexto('');
+    setIsPDFReady(false);
+  
+    const membership = localStorage.getItem('membershipLevel') || 'free';
+    setMembershipLevel(membership);
+  
+    const isPlusOrPremium = membership === 'plus' || membership === 'premium';
+    const isFreeLoggedIn = isLoggedIn && membership === 'free';
+    
+    
+    // Mostrar botones solo si NO ha iniciado sesión
+    setShowButtons(!isLoggedIn);
+    
+    if (isPlusOrPremium || isFreeLoggedIn) {
+      setStep(1);
+      addMessage("Dodi", "Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').");
+    } else {
+      setStep(0);
+      addMessage("Dodi", "¡Hola! ¿En qué puedo ayudarte hoy?");
+    }}
+
+    const handleLogout = () => {
+      localStorage.clear();
+      window.location.reload(); // O puedes redirigir con navigate si usas react-router
+    };
+  
 
   // Funciones de descarga con token en headers
   const descargarPDF = async (planeacion, herramientas) => {
@@ -71,7 +122,14 @@ const DodiChatbot = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ planeacion, herramientasEvaluacion: herramientas }),
+        body: JSON.stringify({
+          planeacion,
+          herramientasEvaluacion: herramientas,
+          gradoEscolar: responses['Nivel y grado educativo'] || '',
+          campoFormativo: responses['Campos formativos'] || '',
+          estrategiaDidactica: responses['Estrategia didáctica'] || '',
+          estadoUsuario: localStorage.getItem('estado') || '', // si guardaste el estado ahí
+        }),
       });
       if (response.status === 403) {
         openPaymentModal("payment");
@@ -104,7 +162,14 @@ const DodiChatbot = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ planeacion, herramientasEvaluacion: herramientas }),
+        body: JSON.stringify({
+          planeacion,
+          herramientasEvaluacion: herramientas,
+          gradoEscolar: responses['Nivel y grado educativo'] || '',
+          campoFormativo: responses['Campos formativos'] || '',
+          estrategiaDidactica: responses['Estrategia didáctica'] || '',
+          estadoUsuario: localStorage.getItem('estado') || '', // si guardaste el estado ahí
+        }),
       });
       if (response.status === 403) {
         openPaymentModal("payment");
@@ -128,27 +193,36 @@ const DodiChatbot = () => {
     }
   };
 
-  // Función para enviar datos al servidor
+  // Envía los datos al servidor para generar la planeación y la rúbrica
   const enviarDatosPlanAlServidor = async () => {
     const token = localStorage.getItem('token');
     const prompt1 = `
-    Actúa como un docente experto en planeación y proyectos interdisciplinarios. Realiza un proyecto para el nivel y grado: ${responses['Nivel y grado educativo']}, que incluya la situación problema: ${responses['Situación problema']}, y use la estrategia didáctica seleccionada: ${responses['Estrategia didáctica']}. Además, considera los campos formativos: ${responses['Campos formativos']}, los PDA: ${responses['PDA']}, los ejes articuladores: ${responses['Ejes articuladores']}, y los rasgos del perfil de egreso: ${responses['Rasgos del perfil de egreso']}.
-    
-    El proyecto debe durar exactamente ${responses['Duración en semanas']} semanas, con 5 días de actividades detalladas por cada semana. **Cada día incluirá exactamente ${responses['Cantidad de actividades diarias']} actividades**, sin excepción ni variación en el número. Asegúrate de que todas las actividades sean claras, prácticas y alineadas con los objetivos, la estrategia didáctica seleccionada, y que integren los PDA, ejes articuladores, y rasgos del perfil de egreso relevantes en cada actividad diaria.
-    
-    Estructura el contenido para que se presente claramente en formato semanal, y dentro de cada semana describe cada día por separado con las actividades correspondientes, usando la siguiente estructura:
-    
-    ## Semana X:
-    - **Día 1: Nombre de la actividad** - Descripción de la actividad que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
-        1. Actividad 1: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
-        2. Actividad 2: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
-        3. ...(hasta ${responses['Cantidad de actividades diarias']} actividades)
-    - **Día 2: Nombre de la actividad** - Descripción de la actividad.
-        1. Actividad 1: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
-        2. ...(hasta ${responses['Cantidad de actividades diarias']} actividades)
-    - ... (hasta 5 días por semana)
-    Repite esto por todas las semanas, especificando todas las actividades detalladas de cada día.
-    `;
+Actúa como un docente experto en planeación y proyectos interdisciplinarios. Realiza un proyecto para el nivel y grado: ${responses['Nivel y grado educativo']}, que incluya la situación problema: ${responses['Situación problema']}, y use la estrategia didáctica seleccionada: ${responses['Estrategia didáctica']}. Además, considera los campos formativos: ${responses['Campos formativos']}, los PDA: ${responses['PDA']}, los ejes articuladores: ${responses['Ejes articuladores']}, y los rasgos del perfil de egreso: ${responses['Rasgos del perfil de egreso']}.
+
+El proyecto debe durar exactamente ${responses['Duración en semanas']} semanas, con 5 días de actividades detalladas por semana. **Cada día debe incluir exactamente ${responses['Cantidad de actividades diarias'] || '3'} actividades**, sin excepción ni variación en el número.
+
+Estructura el contenido de manera clara y repetitiva, semana por semana, sin omitir ninguna semana, y usando exactamente el siguiente formato:
+
+## Semana X:
+- **Día 1: Nombre de la actividad** - Descripción general.
+  1. Actividad 1: Descripción breve que integre ${responses['PDA']}, ${responses['Ejes articuladores']}, y ${responses['Rasgos del perfil de egreso']}.
+  2. Actividad 2: ...
+  3. ...(hasta ${responses['Cantidad de actividades diarias'] || '3'} actividades)
+- **Día 2: Nombre de la actividad** - Descripción general.
+  1. Actividad 1: ...
+  2. ...
+  3. ...
+- ...
+- **Día 5: Nombre de la actividad** - Descripción general.
+  1. Actividad 1: ...
+  2. ...
+  3. ...
+
+⚠️ **No se permite resumir semanas ni decir frases como "formato similar" o "igual que la semana anterior".** Cada semana debe estar completamente escrita con sus cinco días y todas sus actividades. No omitas ni acortes ninguna semana, incluso si la respuesta es extensa.
+
+🔁 Repite este mismo formato para cada una de las ${responses['Duración en semanas']} semanas. Es muy importante que se escriba todo, especialmente las semanas 2, 3, 4, etc., sin saltos ni resúmenes.
+`;
+
     try {
       const response1 = await fetch('http://localhost:3001/api/generate', {
         method: 'POST',
@@ -203,8 +277,8 @@ const DodiChatbot = () => {
     setSelectedImage(null);
   };
 
-  // openPaymentModal acepta un parámetro para determinar el contenido a mostrar ("auth" o "payment")
-  const openPaymentModal = (content = "auth") => {
+  // openPaymentModal acepta un parámetro ("auth" o "payment")
+  const openPaymentModal = (content = "payment") => {
     setPaymentModalContent(content);
     setShowPaymentModal(true);
     setAuthMode("");
@@ -224,13 +298,7 @@ const DodiChatbot = () => {
     setLoginPassword('');
   };
 
-  // Función para cerrar sesión: elimina token, username y reinicia el estado
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    setIsPremium(false);
-    resetChat();
-  };
+ 
 
   const handleRegistration = async () => {
     if (!registerName || !registerEmail || !registerConfirmEmail || !registerWhatsapp || !registerPassword || !registerConfirmPassword) {
@@ -249,6 +317,7 @@ const DodiChatbot = () => {
       alert("Debes aceptar los Términos y Condiciones.");
       return;
     }
+  
     try {
       const response = await fetch('http://localhost:3001/api/register', {
         method: 'POST',
@@ -258,30 +327,45 @@ const DodiChatbot = () => {
           email: registerEmail,
           whatsapp: registerWhatsapp,
           password: registerPassword,
+          estado: registerEstado
         }),
       });
+  
       if (!response.ok) {
         throw new Error("Error en el registro");
       }
+  
       const data = await response.json();
+      const decoded = jwtDecode(data.token);
+      const membership = decoded.membershipLevel || 'free';
+  
+      // Guarda todo correctamente en localStorage
       localStorage.setItem('token', data.token);
+      setIsLoggedIn(true);
+      localStorage.setItem('membershipLevel', membership);
       localStorage.setItem('username', registerName);
-      setIsPremium(true);
+      localStorage.setItem('userId', decoded.userId);
+  
+      setMembershipLevel(membership);
       setShowPaymentModal(false);
       setShowButtons(false);
+      setStep(membership === 'plus' || membership === 'premium' ? 1 : 0);
+  
       addMessage("Dodi", `¡Cuenta creada exitosamente, ${registerName}! Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').`);
-      setStep(1);
+  
     } catch (error) {
       console.error("Error al registrar el usuario:", error);
       alert("Hubo un problema al crear tu cuenta. Inténtalo de nuevo.");
     }
   };
+  
 
   const handleLogin = async () => {
     if (!loginEmail || !loginPassword) {
       alert("Por favor, ingresa correo y contraseña.");
       return;
     }
+  
     try {
       const response = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
@@ -291,22 +375,43 @@ const DodiChatbot = () => {
           password: loginPassword,
         }),
       });
+  
       if (!response.ok) {
         throw new Error("Error en el login");
       }
+  
       const data = await response.json();
-      localStorage.setItem('token', data.token);
-      const username = localStorage.getItem('username') || loginEmail;
-      setIsPremium(true);
-      setShowPaymentModal(false);
-      setShowButtons(false);
-      addMessage("Dodi", `¡Bienvenido de nuevo, ${username}! Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').`);
-      setStep(1);
+      const token = data.token;
+  
+      try {
+        const decoded = jwtDecode(token);
+        const membership = decoded.membershipLevel || 'free';
+  
+        // Guardamos info útil
+        localStorage.setItem('token', token);
+        setIsLoggedIn(true);
+        localStorage.setItem('membershipLevel', membership);
+        localStorage.setItem('username', data.username || loginEmail);
+        localStorage.setItem('userId', data.userId);
+  
+        setMembershipLevel(membership);
+        setShowPaymentModal(false);
+        setShowButtons(false);
+        setStep(membership === 'plus' || membership === 'premium' ? 1 : 0);
+  
+        const username = data.username || loginEmail;
+        addMessage("Dodi", `¡Bienvenido de nuevo, ${username}! Indica el nivel y grado educativo del proyecto (Ej: '3° de primaria').`);
+      } catch (error) {
+        console.error("Error al decodificar token:", error);
+        alert("Hubo un problema con tu sesión. Intenta de nuevo.");
+      }
+  
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       alert("Hubo un problema al iniciar sesión. Verifica tus datos e inténtalo de nuevo.");
     }
   };
+  
 
   const sendMessage = async (selectedOption = null) => {
     const inputToSend = selectedOption ? selectedOption : userInput.trim();
@@ -316,12 +421,8 @@ const DodiChatbot = () => {
 
     if (step === 0) {
       if (inputToSend.toLowerCase() === "probar mis planeaciones gratis") {
-        if (freePlanCount >= 2) {
-          if (isPremium) {
-            openPaymentModal("payment");
-          } else {
-            openPaymentModal("auth");
-          }
+        if (!isPlusOrPremium && freePlanCount >= 2) {
+          openPaymentModal("auth"); // no importa si luego paga, lo llevará al modal correcto
           return;
         }
         updateFreePlanCount();
@@ -348,7 +449,10 @@ const DodiChatbot = () => {
       addMessage("Dodi", "Selecciona la estrategia didáctica que utilizarás:");
       setStep(3);
     } else if (step === 3) {
-      newResponses["Estrategia didáctica"] = inputToSend;
+      const estrategiaSeleccionada = selectedOption || inputToSend;
+      if (!estrategiaSeleccionada) return;
+  
+      newResponses["Estrategia didáctica"] = estrategiaSeleccionada;
       setResponses(newResponses);
       addMessage("Dodi", (
         <>
@@ -385,39 +489,25 @@ const DodiChatbot = () => {
         <>
           Selecciona los ejes articuladores.
           <br />
-          <img
-            src="https://i.ibb.co/tqgsRcr/ejes-articuladores.png"
-            alt="Ejes articuladores"
-            className="image-style"
-            onClick={() => openModal("https://i.ibb.co/tqgsRcr/ejes-articuladores.png")}
-            style={{ cursor: 'pointer' }}
-          />
         </>
       ));
       setStep(6);
     } else if (step === 6) {
-      newResponses["Ejes articuladores"] = inputToSend;
+      newResponses["Ejes articuladores"] = selectedEjes.join(', ');
       setResponses(newResponses);
       addMessage("Dodi", (
         <>
           Selecciona los rasgos del perfil de egreso.
           <br />
-          <img
-            src="https://i.ibb.co/V998pDq/rasgos-del-perfil-de-egreso.png"
-            alt="Rasgos del perfil de egreso"
-            className="image-style"
-            onClick={() => openModal("https://i.ibb.co/V998pDq/rasgos-del-perfil-de-egreso.png")}
-            style={{ cursor: 'pointer' }}
-          />
         </>
       ));
       setStep(7);
-    } else if (step === 7) {
-      newResponses["Rasgos del perfil de egreso"] = inputToSend;
+    }  else if (step === 7) {
+      newResponses["Rasgos del perfil de egreso"] = selectedRasgos.join(', ');
       setResponses(newResponses);
       addMessage("Dodi", "¿Cuál es la duración del proyecto en semanas (de 2 a 6 semanas)?");
       setStep(8);
-    } else if (step === 8) {
+    }else if (step === 8) {
       const weeks = parseInt(inputToSend, 10);
       if (!isNaN(weeks) && weeks >= 2 && weeks <= 6) {
         newResponses["Duración en semanas"] = weeks.toString();
@@ -432,13 +522,13 @@ const DodiChatbot = () => {
       if (!isNaN(activities) && activities >= 1 && activities <= 5) {
         newResponses["Cantidad de actividades diarias"] = activities.toString();
         setResponses(newResponses);
-        if (isPremium) {
+        if (isPlusOrPremium) {
           setUserInput('');
           setMessages([]);
           addMessage("Dodi", (
             <div style={{ textAlign: 'center' }}>
               <img 
-                src="https://i.ibb.co/x1nL93H/generating.gif" 
+                src="https://i.ibb.co/vL7vsyR/dodi.png" 
                 alt="Generando Planeación" 
                 style={{ maxWidth: '200px', marginBottom: '10px' }} 
               />
@@ -456,14 +546,44 @@ const DodiChatbot = () => {
             console.error("Error al descargar documento:", error);
             openPaymentModal("payment");
           }
+        } else if (isFreeLoggedIn) {
+          setUserInput('');
+          setMessages([]);
+          addMessage("Dodi", (
+            <div style={{ textAlign: 'center' }}>
+              <img 
+                src="https://i.ibb.co/vL7vsyR/dodi.png" 
+                alt="Generando Planeación" 
+                style={{ maxWidth: '200px', marginBottom: '10px' }} 
+              />
+              <p>Estamos generando tu planeación. Por favor espera...</p>
+            </div>
+          ));
+          try {
+            if (freePlanCount >= 2) {
+              openPaymentModal("payment");
+              return;
+            }
+            updateFreePlanCount();
+            const result = await enviarDatosPlanAlServidor();
+            setStep(13);
+            if (result) {
+              await descargarDOCX(result.planeacion, result.herramientas);
+              addMessage("Dodi", "¡Gracias! Tu planeación ha sido generada y descargada.");
+            }
+          } catch (error) {
+            console.error("Error al descargar documento:", error);
+            openPaymentModal("payment");
+          }
         } else {
+          // Solo para usuarios no logueados
           addMessage("Dodi", "Por favor, ingresa tu número de WhatsApp para enviarte la planeación.");
           setStep(10);
         }
       } else {
         addMessage("Dodi", "Por favor ingresa un número de actividades válido entre 1 y 5.");
       }
-    } else if (step === 10 && !isPremium) {
+    } else if (step === 10 && !isLoggedIn) {
       const whatsappRegex = /^\d{10}$/;
       if (whatsappRegex.test(inputToSend)) {
         newResponses["WhatsApp"] = inputToSend;
@@ -473,7 +593,7 @@ const DodiChatbot = () => {
       } else {
         addMessage("Dodi", "El número de WhatsApp debe tener 10 dígitos. Por favor, ingresa un número válido.");
       }
-    } else if (step === 11 && !isPremium) {
+    } else if (step === 11 && !isLoggedIn) {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (emailRegex.test(inputToSend)) {
         setResponses(prev => ({ ...prev, correo: inputToSend }));
@@ -482,7 +602,7 @@ const DodiChatbot = () => {
         addMessage("Dodi", (
           <div style={{ textAlign: 'center' }}>
             <img 
-              src="https://i.ibb.co/x1nL93H/generating.gif" 
+              src="https://i.ibb.co/vL7vsyR/dodi.png" 
               alt="Generando Planeación" 
               style={{ maxWidth: '200px', marginBottom: '10px' }} 
             />
@@ -493,9 +613,16 @@ const DodiChatbot = () => {
           const result = await enviarDatosPlanAlServidor();
           setStep(13);
           if (result) {
-            await descargarPDF(result.planeacion, result.herramientas);
+            if (freePlanCount >= 2) {
+              openPaymentModal("payment");
+              return;
+            }
+          
+            updateFreePlanCount(); // ✅ Incrementar contador
+            await descargarDOCX(result.planeacion, result.herramientas); // ✅ Debe ser DOCX para usuarios logueados, aunque sean "free"
             addMessage("Dodi", "¡Gracias! Tu planeación ha sido generada y descargada.");
           }
+          
         } catch (error) {
           console.error("Error al descargar documento:", error);
           openPaymentModal("payment");
@@ -535,16 +662,80 @@ const DodiChatbot = () => {
     }
   };
 
+  const toggleEje = (eje) => {
+    setSelectedEjes(prev =>
+      prev.includes(eje) ? prev.filter(item => item !== eje) : [...prev, eje]
+    );
+  };
+  
+  const sendEjes = () => {
+    if (selectedEjes.length > 0) {
+      sendMessage(selectedEjes.join(', '));
+    } else {
+      addMessage("Dodi", "Por favor selecciona al menos un eje articulador.");
+    }
+  };
+
+  const toggleRasgo = (rasgo) => {
+    setSelectedRasgos(prev =>
+      prev.includes(rasgo) ? prev.filter(item => item !== rasgo) : [...prev, rasgo]
+    );
+  };
+  
+  const sendRasgos = () => {
+    if (selectedRasgos.length > 0) {
+      sendMessage(selectedRasgos.join(', '));
+    } else {
+      addMessage("Dodi", "Selecciona al menos un rasgo del perfil de egreso.");
+    }
+  };
+
   return (
+    <div className="container">
+
+{isLoggedIn && (
+  <div className="profile-icon-container">
+    <div className="profile-icon" onClick={() => setShowProfileMenu(!showProfileMenu)}>
+      {userInitial}
+    </div>
+    {showProfileMenu && (
+  <div className="profile-menu">
+    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>
+      Hola, {username}
+    </div>
+    <button onClick={handleLogout}>Cerrar sesión</button>
+  </div>
+)}
+  </div>
+)}
+
+    {/* Barra de navegación con los botones */}
+    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+        <Link to="/planeaciones">
+          <button className="nav-button" style={{ marginRight: '1rem' }}>
+            Ir a Banco de Planeaciones
+          </button>
+        </Link>
+        <Link to="/materiales">
+          <button className="nav-button">
+            Ir a Banco de Materiales
+          </button>
+        </Link>
+      </div>
+
+      {isLoggedIn && (
+  <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+    <button className="nav-button" onClick={resetChat}>
+      Iniciar con una planeación nueva
+    </button>
+  </div>
+)}
+
+
+
     <div className="chat-container">
       <img src="https://i.ibb.co/vL7vsyR/dodi.png" alt="Dodi Avatar" className="dodi-avatar" />
-      <h2>Dodi - Asistente de Planeación</h2>
-      {/* Botón de cerrar sesión visible cuando el usuario está autenticado */}
-      {isPremium && (
-        <button className="logout-button" onClick={handleLogout}>
-          Cerrar sesión
-        </button>
-      )}
+      <h2>Dodi - Asistente de Planeación</h2>      
       <div className="chat-box" ref={chatBox}>
         {messages.map((msg, index) => (
           <div key={index} className={msg.sender === "Dodi" ? "bot-message" : "user-message"}>
@@ -559,23 +750,22 @@ const DodiChatbot = () => {
           </div>
         )}
 
-        {showButtons && (
-          <>
-            {!isPremium && (
-              <button className="large-option-button" onClick={() => sendMessage("Probar mis planeaciones gratis")}>
-                Probar mis planeaciones gratis
-              </button>
-            )}
-            <button className="large-option-button" onClick={() => sendMessage("Subscribirme o pagar por cada planeación")}>
-              Subscribirme o pagar por cada planeación
-            </button>
-          </>
-        )}
+{showButtons && !isLoggedIn && (
+  <>
+    <button className="large-option-button" onClick={() => sendMessage("Probar mis planeaciones gratis")}>
+      Probar mis planeaciones gratis
+    </button>
+    <button className="large-option-button" onClick={() => sendMessage("Subscribirme o pagar por cada planeación")}>
+      Iniciar sesión o Registrarte
+    </button>
+  </>
+)}
+
 
         {showPaymentModal && (
           <div className="modal active">
             <div className="modal-content">
-              {(!isPremium && freePlanCount >= 2) && (
+              {(!isPlusOrPremium && freePlanCount >= 2) && (
                 <p style={{ marginBottom: '10px', color: 'red', textAlign: 'center' }}>
                   Lo sentimos, ya alcanzaste tus dos usos gratuitos, por favor crea una cuenta o inicia sesión para poder seguir usando nuestro portal de planeaciones.
                 </p>
@@ -607,6 +797,45 @@ const DodiChatbot = () => {
                           value={registerEmail}
                           onChange={e => setRegisterEmail(e.target.value)}
                         />
+                        <select
+  value={registerEstado}
+  onChange={e => setRegisterEstado(e.target.value)}
+>
+  <option value="">Selecciona tu estado</option>
+  <option value="Aguascalientes">Aguascalientes</option>
+  <option value="Baja California">Baja California</option>
+  <option value="Baja California Sur">Baja California Sur</option>
+  <option value="Campeche">Campeche</option>
+  <option value="Chiapas">Chiapas</option>
+  <option value="Chihuahua">Chihuahua</option>
+  <option value="CDMX">Ciudad de México</option>
+  <option value="Coahuila">Coahuila</option>
+  <option value="Colima">Colima</option>
+  <option value="Durango">Durango</option>
+  <option value="Estado de México">Estado de México</option>
+  <option value="Guanajuato">Guanajuato</option>
+  <option value="Guerrero">Guerrero</option>
+  <option value="Hidalgo">Hidalgo</option>
+  <option value="Jalisco">Jalisco</option>
+  <option value="Michoacán">Michoacán</option>
+  <option value="Morelos">Morelos</option>
+  <option value="Nayarit">Nayarit</option>
+  <option value="Nuevo León">Nuevo León</option>
+  <option value="Oaxaca">Oaxaca</option>
+  <option value="Puebla">Puebla</option>
+  <option value="Querétaro">Querétaro</option>
+  <option value="Quintana Roo">Quintana Roo</option>
+  <option value="San Luis Potosí">San Luis Potosí</option>
+  <option value="Sinaloa">Sinaloa</option>
+  <option value="Sonora">Sonora</option>
+  <option value="Tabasco">Tabasco</option>
+  <option value="Tamaulipas">Tamaulipas</option>
+  <option value="Tlaxcala">Tlaxcala</option>
+  <option value="Veracruz">Veracruz</option>
+  <option value="Yucatán">Yucatán</option>
+  <option value="Zacatecas">Zacatecas</option>
+</select>
+
                         <input
                           type="email"
                           placeholder="Confirmar correo electrónico"
@@ -676,7 +905,7 @@ const DodiChatbot = () => {
                   <button className="close-button" onClick={closePaymentModal}>Cerrar</button>
                 </>
               ) : (
-                <PaymentOptions />
+                <PaymentOptions onClose={closePaymentModal} />
               )}
             </div>
           </div>
@@ -716,21 +945,64 @@ const DodiChatbot = () => {
           </div>
         )}
 
-        {(!showButtons && step !== 3 && step !== 4) && (
-          <>
-            <input
-              type="text"
-              className="chat-input"
-              placeholder="Escribe tu respuesta aquí..."
-              onChange={e => setUserInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              value={userInput}
-            />
-            <button className="send-button" onClick={() => sendMessage()}>
-              Enviar
-            </button>
-          </>
-        )}
+{step === 6 && (
+  <div className="button-group">
+    {["Inclusión", "Pensamiento crítico", "Equidad de género", "Interculturalidad crítica", "vida saludable", "Apropiación de las Culturas", "Artes y experiencias estéticas"].map((eje, idx) => (
+      <button
+        key={idx}
+        className={`option-button ${selectedEjes.includes(eje) ? 'selected' : ''}`}
+        onClick={() => toggleEje(eje)}
+      >
+        {eje}
+      </button>
+    ))}
+    <button className="send-button" onClick={sendEjes}>
+      Enviar
+    </button>
+  </div>
+)}
+
+{step === 7 && (
+  <div className="rasgos-container">
+    <div className="rasgos-grid">
+    {["Ciudadanía y derechos:", "Diversidad y equidad de género", "Autoestima y desarrollo persona", "Pensamiento crítico", "Uso de diversos lenguajes", "Valoración de las ciencias y humanidades", "Correlación entre el bienestar personal y el del medio ambiente", "Interpretar fenómenos de manera científica", "Interactuar con respeto a la diversidad", "Emplear las habilidades digitales"].map((rasgo, idx) => (        <div key={idx} className="rasgo-card">
+          <button
+            className={`option-button ${selectedRasgos.includes(rasgo) ? 'selected' : ''}`}
+            onClick={() => toggleRasgo(rasgo)}
+          >
+            {rasgo}
+          </button>
+          {selectedRasgos.includes(rasgo) && (
+            <div className="rasgo-descripcion">
+              {descripcionRasgos[rasgo]}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+    <button className="send-button" onClick={sendRasgos}>
+      Enviar
+    </button>
+  </div>
+)}
+
+
+
+{(step >= 1 || (isLoggedIn && step === 0)) && step !== 3 && step !== 4 && step !== 6 && step !== 7 && (
+  <>
+    <input
+      type="text"
+      className="chat-input"
+      placeholder="Escribe tu respuesta aquí..."
+      onChange={e => setUserInput(e.target.value)}
+      onKeyPress={handleKeyPress}
+      value={userInput}
+    />
+    <button className="send-button" onClick={() => sendMessage()}>
+      Enviar
+    </button>
+  </>
+)}
       </div>
 
       <button className="reset-button" onClick={resetChat}>
@@ -739,8 +1011,8 @@ const DodiChatbot = () => {
 
       <div>
         {isPDFReady && (
-          isPremium ? (
-            <button onClick={() => descargarDOCX(planeacionTexto, herramientasEvaluacionTexto)}>
+  (isPlusOrPremium || (isLoggedIn && membershipLevel === 'free')) ? (
+    <button onClick={() => descargarDOCX(planeacionTexto, herramientasEvaluacionTexto)}>
               Descargar Planeación en DOCX
             </button>
           ) : (
@@ -750,6 +1022,9 @@ const DodiChatbot = () => {
           )
         )}
       </div>
+    </div>
+    {localStorage.getItem("isPlusOrPremium") === "true" && <WhatsAppSupportButton />}
+
     </div>
   );
 };
