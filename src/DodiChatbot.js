@@ -116,7 +116,7 @@ const DodiChatbot = () => {
   const descargarPDF = async (planeacion, herramientas) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/generate-pdf', {
+      const response = await fetch('https://backend-dodichat.onrender.com/api/generate-pdf', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ const DodiChatbot = () => {
   const descargarDOCX = async (planeacion, herramientas) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/generate-docx', {
+      const response = await fetch('https://backend-dodichat.onrender.com/api/generate-docx', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ Estructura el contenido de manera clara y repetitiva, semana por semana, sin omi
 `;
 
     try {
-      const response1 = await fetch('http://localhost:3001/api/generate', {
+      const response1 = await fetch('https://backend-dodichat.onrender.com/api/generate', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ Estructura el contenido de manera clara y repetitiva, semana por semana, sin omi
       const planeacion = data1.data;
       setPlaneacionTexto(planeacion);
       const prompt2 = `Dame una rúbrica de evaluación en formato JSON para el proyecto que me diste: "${planeacion}". Incluye 5 criterios de exigencia, cada uno con 4 niveles de cumplimiento ("regular", "bien", "muy bien" y "excelente"). El formato debe ser un array de objetos JSON como: [{"criterio": "Nombre del criterio", "regular": "Descripción regular", "bien": "Descripción bien", "muyBien": "Descripción muy bien", "excelente": "Descripción excelente"}] y que cada descripción tenga menos de 20 palabras.`;
-      const response2 = await fetch('http://localhost:3001/api/generate', {
+      const response2 = await fetch('https://backend-dodichat.onrender.com/api/generate', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -319,7 +319,7 @@ Estructura el contenido de manera clara y repetitiva, semana por semana, sin omi
     }
   
     try {
-      const response = await fetch('http://localhost:3001/api/register', {
+      const response = await fetch('https://backend-dodichat.onrender.com/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -367,7 +367,7 @@ Estructura el contenido de manera clara y repetitiva, semana por semana, sin omi
     }
   
     try {
-      const response = await fetch('http://localhost:3001/api/login', {
+      const response = await fetch('https://backend-dodichat.onrender.com/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

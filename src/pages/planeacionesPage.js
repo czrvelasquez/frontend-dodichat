@@ -41,7 +41,7 @@ const PlaneacionesPage = () => {
     }
 
     setLoading(true);
-    fetch(`http://localhost:3001/api/planeaciones?${queryParams.toString()}`)
+    fetch(`https://backend-dodichat.onrender.com/api/planeaciones?${queryParams.toString()}`)
       .then(res => res.json())
       .then(data => {
         setPlaneaciones(data);
@@ -61,8 +61,8 @@ const PlaneacionesPage = () => {
     try {
       const endpoint =
         tipo === 'pdf'
-          ? `http://localhost:3001/api/generate-pdf-from-db/${id}`
-          : `http://localhost:3001/api/generate-docx-from-db/${id}`;
+          ? `https://backend-dodichat.onrender.com/api/generate-pdf-from-db/${id}`
+          : `https://backend-dodichat.onrender.com/api/generate-docx-from-db/${id}`;
 
       const response = await fetch(endpoint, { method: 'POST' });
       if (!response.ok) {

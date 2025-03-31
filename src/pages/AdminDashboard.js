@@ -29,7 +29,7 @@ const AdminDashboard = () => {
     }
 
     // ✅ Si todo bien, cargamos los usuarios
-    fetch("http://localhost:3001/api/admin/users", {
+    fetch("https://backend-dodichat.onrender.com/api/admin/users", {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -56,7 +56,7 @@ const AdminDashboard = () => {
   const togglePremium = async (userId, currentStatus) => {
     const nuevoEstado = !currentStatus;
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/update-premium/${userId}`, {
+      const response = await fetch(`https://backend-dodichat.onrender.com/api/admin/update-premium/${userId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
